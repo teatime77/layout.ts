@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>Layout</title>
+
+    <link rel="stylesheet" href="katex/katex.min.css"
+        integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" crossorigin="anonymous">
+
+    <!-- The loading of KaTeX is deferred to speed up page rendering -->
+    <script defer src="katex/katex.min.js"
+        integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx"
+        crossorigin="anonymous"></script>
+
+    <!-- To automatically render math in text elements, include the auto-render extension: -->
+    <script defer src="katex/contrib/auto-render.min.js"
+        integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+
+        <script type="text/javascript" src="lib/i18n/i18n.js"></script>
+        <script type="text/javascript" src="lib/layout/layout.js"></script>
+
+<style type="text/css">
+html {
+    display: inline-block;
+    background-color: cornsilk;
+    height: 100%;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+}
+</style>
+
+</head>
+<body onload="layout_ts.bodyOnLoad()">
+</body>
+</html>
