@@ -117,7 +117,9 @@ export class UI {
 
         html.style.width  = `${width}px`;
         html.style.height = `${height}px`;
+    }
 
+    select(selected : boolean){
     }
 
     layout(x : number, y : number, width : number, height : number){
@@ -260,11 +262,45 @@ export class RadioButton extends UI {
         return this.button;
     }
 
+    select(selected : boolean){
+        if(this.parent == undefined){
+            throw new MyError();
+        }
+        
+        if(this.parent.selectedUI != undefined){
+            const old_selected = this.parent.selectedUI;
+            this.parent.selectedUI = undefined;
+            old_selected.select(false);
+        }
+
+        const html = this.html();
+        if(selected){
+
+            html.style.margin      = "1px";
+            html.style.borderWidth = "2px";
+
+            if(this.parent.selectedUI != this){
+
+                this.parent.selectedUI = this;
+                if(this.parent.onChange != undefined){
+                    this.parent.onChange(this);
+                }
+            }
+        }
+        else{
+
+            html.style.margin      = "2px";
+            html.style.borderWidth = "1px";
+        }
+    }
 }
 
 export class Block extends UI {
     div : HTMLDivElement;
     children : UI[];
+    selectedUI? : UI;
+
+    onChange? : (ui:UI)=>void;
 
     constructor(data : Attr & { children : UI[] }){        
         super(data);
@@ -282,22 +318,43 @@ export class Block extends UI {
         return this.div;
     }
 
-    getAll() : HTMLElement[] {
-        let htmls : HTMLElement[] = [ this.html() ];
+    addChild(ui : UI){
+        ui.parent = this;
+        this.div.append(ui.html());
+        this.children.push(ui);
+    }
+
+    addRadioButton(radio : RadioButton){
+        this.addChild(radio);
+        radio.button.addEventListener("click", (ev:MouseEvent)=>{
+            radio.select(true);
+        });
+    }
+
+    getAllUI() : UI[] {
+        let uis : UI[] = [ this ];
         for(const child of this.children){
             if(child instanceof Block){
-                htmls = htmls.concat(child.getAll());
+                uis = uis.concat(child.getAllUI());
             }
             else{
-                htmls.push(child.html());
+                uis.push(child);
             }
         }
 
-        return htmls;
+        return uis;
+    }
+
+    getAllHtml() : HTMLElement[] {
+        return this.getAllUI().map(x => x.html());
     }
 
     getElementById(id : string) : HTMLElement | undefined {
-        return this.getAll().find(x => x.id == id);
+        return this.getAllHtml().find(x => x.id == id);
+    }
+
+    getUIById(id : string) : UI | undefined {
+        return this.getAllUI().find(x => x.id == id);
     }
 }
 
