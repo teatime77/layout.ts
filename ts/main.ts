@@ -69,14 +69,12 @@ export abstract class UI {
     aspectRatio? : number;
     colspan : number = 1;
 
-    width_px? : number;
-
     constructor(data : Attr){   
         Object.assign(this, data);
         this.idx = ++UI.count;
     }
 
-    setStyle(data : Attr){
+    setStyle(data : Attr) : UI {
         const ele = this.html();
 
         if(data.id != undefined){
@@ -93,15 +91,43 @@ export abstract class UI {
         if(this.backgroundColor != undefined){
             ele.style.backgroundColor = this.backgroundColor;
         }
+
+        if(data.width != undefined){
+            ele.style.width = data.width;
+        }
+
+        if(data.height != undefined){
+            ele.style.height = data.height;
+        }
+
+        return this;
     }
 
     abstract html() : HTMLElement;
 
-    make(){        
+    getWidth() : number {
+        if(this.width != undefined){
+            if(this.width.endsWith("px")){
+                return pixel(this.width);
+            }
+        }
+
+        const rect = this.html().getBoundingClientRect();
+        return rect.width;
+    }
+
+    getHeight() : number {
+        if(this.height != undefined){
+            if(this.height.endsWith("px")){
+                return pixel(this.height);
+            }
+        }
+
+        const rect = this.html().getBoundingClientRect();
+        return rect.height;
     }
 
     setWidth(width : number){
-        this.width_px = width;
         this.html().style.width = `${width}px`;
     }
 
@@ -148,7 +174,6 @@ export class Label extends AbstractText {
     constructor(data : Attr){        
         super(data);
         this.span = document.createElement("span");
-        this.setStyle(data);
     }
 
     html() : HTMLElement {
@@ -162,7 +187,6 @@ export class Text extends AbstractText {
     constructor(data : Attr){        
         super(data);
         this.input = document.createElement("input");
-        this.setStyle(data);
     }
 
     html() : HTMLElement {
@@ -195,7 +219,6 @@ export class Img extends UI {
     constructor(data : Attr){        
         super(data);
         this.img = document.createElement("img");
-        this.setStyle(data);
     }
 
     html() : HTMLElement {
@@ -204,6 +227,7 @@ export class Img extends UI {
 }
 
 abstract class AbstractButton extends UI {
+    static imgMargin = 2;
     button : HTMLButtonElement;    
 
     constructor(data : Attr & { text? : string, url? : string }){
@@ -218,15 +242,19 @@ abstract class AbstractButton extends UI {
             const img = document.createElement("img");
             img.src = data.url;
     
-            if(data.width != undefined){
-    
-                img.style.width  = data.width;
+            if(data.width == undefined || data.height == undefined){
+                throw new MyError();
             }
-    
-            if(data.height != undefined){
-                img.style.height = data.height;
-            }
-    
+
+            // img.style.position = "absolute";
+            // img.style.left   = `${AbstractButton.imgMargin}px`;
+            // img.style.top    = `${AbstractButton.imgMargin}px`;
+
+            // img.style.width  = `${pixel(data.width)  - 2 * AbstractButton.imgMargin}px`;
+            // img.style.height = `${pixel(data.height) - 2 * AbstractButton.imgMargin}px`;
+            img.style.width   = "100%";
+            img.style.height  = "100%";
+        
             this.button.append(img);    
         }
     }
@@ -238,7 +266,6 @@ export class Button extends AbstractButton {
     constructor(data : Attr & { text? : string, url? : string, click? : MouseEventCallback }){        
         super(data);
         this.click = data.click;
-        this.setStyle(data);
 
         this.button.addEventListener("click", (ev:MouseEvent)=>{
             if(this.click != undefined){
@@ -288,8 +315,6 @@ export class RadioButton extends AbstractButton {
         this.button.title = data.title;
         this.button.style.margin      = "2px";
         this.button.style.borderWidth = "1px";
-
-        this.setStyle(data);
     }
 
     html() : HTMLElement {
@@ -344,8 +369,6 @@ export class Block extends UI {
         this.children = data.children;
 
         this.children.forEach(x => this.div.append(x.html()));
-
-        this.setStyle(data);
     }
 
     html() : HTMLElement {
@@ -395,6 +418,7 @@ export class Block extends UI {
 }
 
 export class Flex extends Block {
+    static padding = 2;
     direction : string;
 
     constructor(data : Attr & { direction?: string, children : UI[] }){
@@ -404,9 +428,58 @@ export class Flex extends Block {
         this.children = data.children;
 
         this.children.forEach(x => this.div.append(x.html()));
+    }
 
-        this.div.style.display = "flex";
-        this.div.style.flexDirection = this.direction;
+    layout(x : number, y : number){
+        const child_widths  = this.children.map(x => x.getWidth());
+        const child_heights = this.children.map(x => x.getHeight());
+
+        let width  : number;
+        let height : number;
+        let child_x = Flex.padding;
+        let child_y = Flex.padding;
+        if(this.direction == "row"){
+
+            for(const [idx, child] of this.children.entries()){
+                child.layout(child_x, child_y, child_widths[idx], child_heights[idx]);
+
+                child_x += child_widths[idx] + Flex.padding;
+            }
+
+            width  = child_x;
+            height = Math.max(...child_heights)+ 2 * Flex.padding;
+        }
+        else{
+
+            for(const [idx, child] of this.children.entries()){
+                child.layout(child_x, child_y, child_widths[idx], child_heights[idx]);
+
+                child_y += child_heights[idx] + Flex.padding;
+            }
+
+            width  = Math.max(...child_widths) + 2 * Flex.padding;
+            height = child_y;
+        }
+
+        super.layout(x, y, width, height);
+    }
+}
+
+export class PopupMenu extends Flex {
+    constructor(data : Attr & { direction?: string, children : UI[] }){
+        super(data);
+        document.body.append(this.div);
+        this.div.style.display = "none";
+        this.div.style.zIndex  = "1";
+    }
+
+    show(ev : MouseEvent){
+        this.div.style.display = "inline-block";
+        this.layout(ev.pageX, ev.pageY);
+    }
+
+    close(){        
+        this.div.style.display = "none";
     }
 }
 
@@ -509,7 +582,7 @@ export class Dialog extends UI {
         this.dlg = document.createElement("dialog");
         this.dlg.style.position = "fixed";
 
-        const ok_button = new Button({
+        const ok_button = $button({
             text : "OK",
             click : (ev:MouseEvent)=>{
                 if(this.okClick != undefined){
@@ -519,14 +592,14 @@ export class Dialog extends UI {
             }
         });
 
-        const cancel_button = new Button({
+        const cancel_button = $button({
             text : "Cancel",
             click : (ev:MouseEvent)=>{
                 this.dlg.close();
             }
         });
 
-        this.grid = new Grid({
+        this.grid = $grid({
             rows : "100% 50px",
             children : [
                 this.content,
@@ -541,9 +614,6 @@ export class Dialog extends UI {
 
         this.dlg.append(this.grid.div);
         document.body.append(this.dlg);
-
-        this.setStyle(data);
-
     }
 
     html() : HTMLElement {
@@ -565,151 +635,66 @@ export class Dialog extends UI {
     }
 
     show(ev : MouseEvent){
-        this.showStyle(ev);
         this.dlg.show();
+        this.showStyle(ev);
     }
 
     showModal(ev : MouseEvent){
-        this.showStyle(ev);
+        setTimeout(()=>{
+            // getBoundingClientRect can be used after showModal
+
+            this.showStyle(ev);
+        })
         this.dlg.showModal();
     }
 }
 
 export function $label(data : Attr) : Label {
-    return new Label(data);
+    return new Label(data).setStyle(data) as Label;
 }
 
 export function $text(data : Attr) : Text {
-    return new Text(data);
+    return new Text(data).setStyle(data) as Text;
 }
 
 export function $textarea(data : Attr & { value? : string, cols : number, rows : number }) : TextArea {
-    return new TextArea(data);
+    return new TextArea(data).setStyle(data) as TextArea;
 }
 
 export function $img(data : Attr) : Img {
-    return new Img(data);
+    return new Img(data).setStyle(data) as Img;
 }
 
 export function $button(data : Attr & { text? : string, url? : string, click? : MouseEventCallback }) : Button {
-    return new Button(data);
+    return new Button(data).setStyle(data) as Button;
 }
 
 export function $checkbox(data : Attr & { text : string }) : CheckBox {
-    return new CheckBox(data);
+    return new CheckBox(data).setStyle(data) as CheckBox;
 }
 
 export function $radio(data : Attr & { value : string, title : string, text? : string, url? : string }) : RadioButton {
-    return new RadioButton(data);
+    return new RadioButton(data).setStyle(data) as RadioButton;
 }
 
 export function $block(data : Attr & { children : UI[] }) : Block {
-    return new Block(data);
+    return new Block(data).setStyle(data) as Block;
 }
 
 export function $grid(data : Attr & { columns?: string, rows? : string, children : UI[] }) : Grid {
-    return new Grid(data);
+    return new Grid(data).setStyle(data) as Grid;
 }
 
 export function $flex(data : Attr & { direction?: string, children : UI[] }) : Flex {
-    return new Flex(data);
+    return new Flex(data).setStyle(data) as Flex;
+}
+
+export function $popup(data : Attr & { direction?: string, children : UI[] }) : PopupMenu {
+    return new PopupMenu(data).setStyle(data) as PopupMenu;
 }
 
 export function $dialog(data : Attr & { content : UI, okClick? : MouseEventCallback }) : Dialog {
-    return new Dialog(data);
-}
-
-function makeTestUI(){
-    const k = document.location.href.lastIndexOf("/");
-    const home = document.location.href.substring(0, k);
-    msg(`home:${home}`);
-
-    const root = $grid({
-        rows     : "50px 50px 100%",
-        children:[
-            $block({
-                children : [],
-                backgroundColor : "chocolate",
-            })
-            ,
-            $grid({
-                columns  : "50% 50%",
-                children: [
-                    $block({
-                        children : [
-                            $checkbox({
-                                text : "Axis"
-                            })
-                        ],
-                        backgroundColor : "lime",
-                    })
-                    ,
-                    $block({
-                        children : [
-                            $button({
-                                text : "Play",
-                                click : (ev:MouseEvent)=>{}
-                            })
-                        ],
-                        backgroundColor : "violet",
-                    })
-                ]
-            })
-            ,
-            $grid({
-                columns  : "50px 50% 50% 300px",
-
-                children : [
-                    $block({
-                        children : [
-                            $radio({
-                                value : "",
-                                title : "",
-                                width : "24px",
-                                height : "24px",
-                                url : `${home}/lib/plane/img/selection.png`
-                            })
-                            ,
-                            $radio({
-                                value : "",
-                                title : "",
-                                width : "24px",
-                                height : "24px",
-                                url : `${home}/lib/plane/img/point.png`
-                            })
-                        ],
-                        backgroundColor : "green",
-                    })
-                    ,
-                    $block({
-                        children : [
-                            $button({
-                                id : "add-statement",
-                                width : "24px",
-                                height : "24px",
-                                url : `${home}/lib/plane/img/statement.png`
-                            })
-                        ],
-                        aspectRatio : 1,
-                        backgroundColor : "blue",
-                    })
-                    ,
-                    $block({
-                        children : [],
-                        aspectRatio : 1,
-                        backgroundColor : "orange",
-                    })
-                    ,
-                    $block({
-                        children : [],
-                        backgroundColor : "cyan",
-                    }),
-                ]
-            })
-        ]
-    });
-
-    return root;
+    return new Dialog(data).setStyle(data) as Dialog;
 }
 
 export function initLayout(root : Grid){
