@@ -449,7 +449,7 @@ export class Flex extends Block {
             width  = child_x;
             height = Math.max(...child_heights)+ 2 * Flex.padding;
         }
-        else{
+        else if(this.direction == "column"){
 
             for(const [idx, child] of this.children.entries()){
                 child.layout(child_x, child_y, child_widths[idx], child_heights[idx]);
@@ -459,6 +459,9 @@ export class Flex extends Block {
 
             width  = Math.max(...child_widths) + 2 * Flex.padding;
             height = child_y;
+        }
+        else{
+            throw new MyError();
         }
 
         super.layout(x, y, width, height);
@@ -471,6 +474,18 @@ export class PopupMenu extends Flex {
         document.body.append(this.div);
         this.div.style.display = "none";
         this.div.style.zIndex  = "1";
+
+
+        if(this.backgroundColor == undefined){
+            this.backgroundColor = "white";
+        }
+
+        const buttons = this.children.filter(x => x instanceof AbstractButton);
+        for(const button of buttons){
+            button.button.addEventListener("click", (ev : MouseEvent)=>{
+                this.close();
+            });
+        }
     }
 
     show(ev : MouseEvent){

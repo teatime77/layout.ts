@@ -5,7 +5,7 @@ export function makeTestUI(){
     const home = document.location.href.substring(0, k);
     msg(`home:${home}`);
 
-    const menu = $popup({
+    const img_menu = $popup({
         children : [
             $button({
                 width : "24px",
@@ -23,6 +23,23 @@ export function makeTestUI(){
                 width : "24px",
                 height : "24px",
                 url : `${home}/lib/plane/img/line.png`
+            })
+        ]
+    });
+
+    const text_menu = $popup({
+        direction : "column",
+        children : [
+            $button({
+                text : "Cut"
+            })
+            ,
+            $button({
+                text : "Copy"
+            })
+            ,
+            $button({
+                text : "Paste"
             })
         ]
     });
@@ -90,7 +107,11 @@ export function makeTestUI(){
                                 id : "add-statement",
                                 width : "24px",
                                 height : "24px",
-                                url : `${home}/lib/plane/img/text.png`
+                                url : `${home}/lib/plane/img/text.png`,
+                                click : (ev : MouseEvent)=>{
+                                    msg("show text menu");
+                                    text_menu.show(ev);
+                                }
                             })
                             ,
                             $button({
@@ -98,8 +119,7 @@ export function makeTestUI(){
                                 height : "24px",
                                 url : `${home}/lib/plane/img/statement.png`,
                                 click : (ev : MouseEvent)=>{
-                                    msg("show menu");
-                                    menu.show(ev);
+                                    img_menu.show(ev);
                                 }
                             })
                         ],
