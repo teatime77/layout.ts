@@ -4,3 +4,4 @@ public/katex
 install.bat
 public/lib/layout
 ts/@types
+debug.log

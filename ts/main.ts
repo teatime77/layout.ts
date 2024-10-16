@@ -1,5 +1,7 @@
 namespace layout_ts {
 //
+type MouseEventCallback = (ev : MouseEvent)=>void;
+
 export function bodyOnLoad(){
     i18n_ts.initI18n();
 
@@ -51,7 +53,7 @@ interface Attr {
     aspectRatio? : number;
 }
 
-export class UI {
+export abstract class UI {
     static count : number = 0;
 
     idx : number;
@@ -93,9 +95,7 @@ export class UI {
         }
     }
 
-    html() : HTMLElement {
-        throw new MyError();
-    }
+    abstract html() : HTMLElement;
 
     make(){        
     }
@@ -137,7 +137,7 @@ export class UI {
     }
 }
 
-export class AbstractText extends UI {
+export abstract class AbstractText extends UI {
     fontName? : string;
     fontSize? : string;
 }
@@ -170,6 +170,25 @@ export class Text extends AbstractText {
     }
 }
 
+export class TextArea extends UI {
+    textArea : HTMLTextAreaElement;
+
+    constructor(data : Attr & { value? : string, cols : number, rows : number }){
+        super(data);
+        this.textArea = document.createElement("textarea");
+        if(data.value != undefined){
+            this.textArea.value = data.value;
+        }
+
+        this.textArea.cols = data.cols;
+        this.textArea.rows = data.rows;
+    }
+
+    html() : HTMLElement {
+        return this.textArea;
+    }
+}
+
 export class Img extends UI {
     img : HTMLImageElement;
 
@@ -184,16 +203,48 @@ export class Img extends UI {
     }
 }
 
-export class Button extends UI {
-    button : HTMLButtonElement;
-    text : string;
+abstract class AbstractButton extends UI {
+    button : HTMLButtonElement;    
 
-    constructor(data : Attr & { text : string }){        
+    constructor(data : Attr & { text? : string, url? : string }){
         super(data);
-        this.text = data.text;
         this.button = document.createElement("button");
-        this.button.innerText = this.text;
+
+        if(data.text != undefined){
+            this.button.innerText = data.text;
+        }
+
+        if(data.url != undefined){
+            const img = document.createElement("img");
+            img.src = data.url;
+    
+            if(data.width != undefined){
+    
+                img.style.width  = data.width;
+            }
+    
+            if(data.height != undefined){
+                img.style.height = data.height;
+            }
+    
+            this.button.append(img);    
+        }
+    }
+}
+
+export class Button extends AbstractButton {
+    click? : MouseEventCallback;
+
+    constructor(data : Attr & { text? : string, url? : string, click? : MouseEventCallback }){        
+        super(data);
+        this.click = data.click;
         this.setStyle(data);
+
+        this.button.addEventListener("click", (ev:MouseEvent)=>{
+            if(this.click != undefined){
+                this.click(ev);
+            }
+        })
     }
 
     html() : HTMLElement {
@@ -229,31 +280,14 @@ export class CheckBox extends UI {
     }
 }
 
-export class RadioButton extends UI {
-    button : HTMLButtonElement;
-
-    constructor(data : Attr & { value : string, title : string, url : string }){
+export class RadioButton extends AbstractButton {
+    constructor(data : Attr & { value : string, title : string, text? : string, url? : string }){
         super(data);
 
-        this.button = document.createElement("button");
         this.button.value = data.value;
         this.button.title = data.title;
         this.button.style.margin      = "2px";
         this.button.style.borderWidth = "1px";
-
-        const img = document.createElement("img");
-        img.src = data.url;
-
-        if(data.width != undefined){
-
-            img.style.width  = data.width;
-        }
-
-        if(data.height != undefined){
-            img.style.height = data.height;
-        }
-
-        this.button.append(img);
 
         this.setStyle(data);
     }
@@ -305,7 +339,7 @@ export class Block extends UI {
     constructor(data : Attr & { children : UI[] }){        
         super(data);
         this.div = document.createElement("div");
-        this.div.style.position = "fixed";
+        this.div.style.position = "absolute";
 
         this.children = data.children;
 
@@ -346,7 +380,8 @@ export class Block extends UI {
     }
 
     getAllHtml() : HTMLElement[] {
-        return this.getAllUI().map(x => x.html());
+        const uis = this.getAllUI();
+        return uis.map(x => x.html());
     }
 
     getElementById(id : string) : HTMLElement | undefined {
@@ -354,7 +389,8 @@ export class Block extends UI {
     }
 
     getUIById(id : string) : UI | undefined {
-        return this.getAllUI().find(x => x.id == id);
+        const uis = this.getAllUI();
+        return uis.find(x => x.id == id);
     }
 }
 
@@ -413,8 +449,8 @@ export class Grid extends Block {
 
         let row = 0;
         let col = 0;
-        let child_x = x;
-        let child_y = y;
+        let child_x = 0;
+        let child_y = 0;
         for(const child of this.children){
             let child_width : number;
             if(child.colspan == 1){
@@ -456,6 +492,89 @@ export class Grid extends Block {
     }
 }
 
+export class Dialog extends UI {
+    dlg : HTMLDialogElement;
+    content : UI;
+    grid : Grid;
+    okClick? : MouseEventCallback;
+
+    constructor(data : Attr & { content : UI, okClick? : MouseEventCallback }){
+        super(data);
+        if(data.width == undefined || data.height == undefined){
+            throw new MyError();
+        }
+        this.content = data.content;
+        this.okClick = data.okClick;
+
+        this.dlg = document.createElement("dialog");
+        this.dlg.style.position = "fixed";
+
+        const ok_button = new Button({
+            text : "OK",
+            click : (ev:MouseEvent)=>{
+                if(this.okClick != undefined){
+                    this.okClick(ev);
+                }
+                this.dlg.close();
+            }
+        });
+
+        const cancel_button = new Button({
+            text : "Cancel",
+            click : (ev:MouseEvent)=>{
+                this.dlg.close();
+            }
+        });
+
+        this.grid = new Grid({
+            rows : "100% 50px",
+            children : [
+                this.content,
+                $flex({
+                    children : [
+                        ok_button,
+                        cancel_button        
+                    ]
+                })
+            ]
+        });
+
+        this.dlg.append(this.grid.div);
+        document.body.append(this.dlg);
+
+        this.setStyle(data);
+
+    }
+
+    html() : HTMLElement {
+        return this.dlg;
+    }
+
+    showStyle(ev : MouseEvent){
+        const width = pixel(this.width!);
+        const height = pixel(this.height!);
+
+        this.grid.layout(0, 0, width, height);
+
+        msg(`dlg: ${width} ${height} ${ev.pageX} ${ev.pageY}`)
+        this.dlg.style.width  = `${width}px`;
+        this.dlg.style.height = `${height}px`;
+
+        this.dlg.style.marginLeft = `${ev.pageX}px`;
+        this.dlg.style.marginTop  = `${ev.pageY}px`;
+    }
+
+    show(ev : MouseEvent){
+        this.showStyle(ev);
+        this.dlg.show();
+    }
+
+    showModal(ev : MouseEvent){
+        this.showStyle(ev);
+        this.dlg.showModal();
+    }
+}
+
 export function $label(data : Attr) : Label {
     return new Label(data);
 }
@@ -464,11 +583,15 @@ export function $text(data : Attr) : Text {
     return new Text(data);
 }
 
+export function $textarea(data : Attr & { value? : string, cols : number, rows : number }) : TextArea {
+    return new TextArea(data);
+}
+
 export function $img(data : Attr) : Img {
     return new Img(data);
 }
 
-export function $button(data : Attr & { text : string }) : Button {
+export function $button(data : Attr & { text? : string, url? : string, click? : MouseEventCallback }) : Button {
     return new Button(data);
 }
 
@@ -476,7 +599,7 @@ export function $checkbox(data : Attr & { text : string }) : CheckBox {
     return new CheckBox(data);
 }
 
-export function $radio(data : Attr & { value : string, title : string, url : string }){
+export function $radio(data : Attr & { value : string, title : string, text? : string, url? : string }) : RadioButton {
     return new RadioButton(data);
 }
 
@@ -486,6 +609,14 @@ export function $block(data : Attr & { children : UI[] }) : Block {
 
 export function $grid(data : Attr & { columns?: string, rows? : string, children : UI[] }) : Grid {
     return new Grid(data);
+}
+
+export function $flex(data : Attr & { direction?: string, children : UI[] }) : Flex {
+    return new Flex(data);
+}
+
+export function $dialog(data : Attr & { content : UI, okClick? : MouseEventCallback }) : Dialog {
+    return new Dialog(data);
 }
 
 function makeTestUI(){
@@ -516,7 +647,8 @@ function makeTestUI(){
                     $block({
                         children : [
                             $button({
-                                text : "Play"
+                                text : "Play",
+                                click : (ev:MouseEvent)=>{}
                             })
                         ],
                         backgroundColor : "violet",
@@ -550,7 +682,14 @@ function makeTestUI(){
                     })
                     ,
                     $block({
-                        children : [],
+                        children : [
+                            $button({
+                                id : "add-statement",
+                                width : "24px",
+                                height : "24px",
+                                url : `${home}/lib/plane/img/statement.png`
+                            })
+                        ],
                         aspectRatio : 1,
                         backgroundColor : "blue",
                     })
