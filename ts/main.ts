@@ -236,6 +236,8 @@ abstract class AbstractButton extends UI {
         super(data);
         this.value = data.value;
         this.button = document.createElement("button");
+        this.button.style.position = "absolute";
+        this.button.style.padding = "1px";
 
         if(data.text != undefined){
             this.button.innerText = data.text;
@@ -316,8 +318,8 @@ export class RadioButton extends AbstractButton {
 
         this.button.value = data.value;
         this.button.title = data.title;
-        this.button.style.margin      = "2px";
-        this.button.style.borderWidth = "1px";
+        this.button.style.borderWidth = "3px";
+        this.button.style.borderStyle = "outset";
     }
 
     html() : HTMLElement {
@@ -338,8 +340,7 @@ export class RadioButton extends AbstractButton {
         const html = this.html();
         if(selected){
 
-            html.style.margin      = "1px";
-            html.style.borderWidth = "2px";
+            html.style.borderStyle = "inset";
 
             if(this.parent.selectedUI != this){
 
@@ -351,8 +352,7 @@ export class RadioButton extends AbstractButton {
         }
         else{
 
-            html.style.margin      = "2px";
-            html.style.borderWidth = "1px";
+            html.style.borderStyle = "outset";
         }
     }
 }
@@ -371,24 +371,27 @@ export class Block extends UI {
 
         this.children = data.children;
 
+        for(const child of this.children){
+            child.parent = this;
+            this.div.append(child.html());
+    
+            if(child instanceof RadioButton){
+
+                child.button.addEventListener("click", (ev:MouseEvent)=>{
+                    child.select(true);                
+                });
+            }
+        }
+
+        if(this.children.length != 0 && this.children[0] instanceof RadioButton){
+            this.children[0].select(true);
+        }
+
         this.children.forEach(x => this.div.append(x.html()));
     }
 
     html() : HTMLElement {
         return this.div;
-    }
-
-    addChild(ui : UI){
-        ui.parent = this;
-        this.div.append(ui.html());
-        this.children.push(ui);
-    }
-
-    addRadioButton(radio : RadioButton){
-        this.addChild(radio);
-        radio.button.addEventListener("click", (ev:MouseEvent)=>{
-            radio.select(true);
-        });
     }
 
     getAllUI() : UI[] {
@@ -433,12 +436,12 @@ export class Flex extends Block {
         this.children.forEach(x => this.div.append(x.html()));
     }
 
-    layout(x : number, y : number){
+    layout(x : number, y : number, width : number, height : number){
         const child_widths  = this.children.map(x => x.getWidth());
         const child_heights = this.children.map(x => x.getHeight());
 
-        let width  : number;
-        let height : number;
+        let width_auto  : number;
+        let height_auto : number;
         let child_x = Flex.padding;
         let child_y = Flex.padding;
         if(this.direction == "row"){
@@ -449,29 +452,43 @@ export class Flex extends Block {
                 child_x += child_widths[idx] + Flex.padding;
             }
 
-            width  = child_x;
-            height = Math.max(...child_heights)+ 2 * Flex.padding;
+            width_auto  = child_x;
+            height_auto = Math.max(...child_heights)+ 2 * Flex.padding;
         }
         else if(this.direction == "column"){
+            if(!isNaN(width)){
+                const max_width = Math.max(... child_widths);
+                child_x = 0.5 * (width - max_width);
+            }
 
             for(const [idx, child] of this.children.entries()){
+                msg(`flex y:${child_y} h:${child_heights[idx]} pad:${Flex.padding}`)
                 child.layout(child_x, child_y, child_widths[idx], child_heights[idx]);
 
                 child_y += child_heights[idx] + Flex.padding;
             }
 
-            width  = Math.max(...child_widths) + 2 * Flex.padding;
-            height = child_y;
+            width_auto  = Math.max(...child_widths) + 2 * Flex.padding;
+            height_auto = child_y;
         }
         else{
             throw new MyError();
         }
 
-        super.layout(x, y, width, height);
+        if(isNaN(width) || isNaN(height)){
+
+            super.layout(x, y, width_auto, height_auto);
+        }
+        else{
+
+            super.layout(x, y, width, height);
+        }
     }
 }
 
 export class PopupMenu extends Flex {
+    static initialWidth = "300px";
+
     click? : (index : number, id? : string, value? : string)=>void;
 
     constructor(data : Attr & { direction?: string, children : UI[], click? : (index : number)=>void }){
@@ -481,6 +498,7 @@ export class PopupMenu extends Flex {
         document.body.append(this.div);
         this.div.style.display = "none";
         this.div.style.zIndex  = "1";
+        this.div.style.width = PopupMenu.initialWidth;
 
 
         if(this.backgroundColor == undefined){
@@ -500,7 +518,7 @@ export class PopupMenu extends Flex {
 
     show(ev : MouseEvent){
         this.div.style.display = "inline-block";
-        this.layout(ev.pageX, ev.pageY);
+        this.layout(ev.pageX, ev.pageY, NaN, NaN);
     }
 
     close(){        
