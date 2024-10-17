@@ -228,10 +228,13 @@ export class Img extends UI {
 
 abstract class AbstractButton extends UI {
     static imgMargin = 2;
+
+    value?  : string;
     button : HTMLButtonElement;    
 
-    constructor(data : Attr & { text? : string, url? : string }){
+    constructor(data : Attr & { value? : string, text? : string, url? : string }){
         super(data);
+        this.value = data.value;
         this.button = document.createElement("button");
 
         if(data.text != undefined){
@@ -263,7 +266,7 @@ abstract class AbstractButton extends UI {
 export class Button extends AbstractButton {
     click? : MouseEventCallback;
 
-    constructor(data : Attr & { text? : string, url? : string, click? : MouseEventCallback }){        
+    constructor(data : Attr & { value? : string, text? : string, url? : string, click? : MouseEventCallback }){        
         super(data);
         this.click = data.click;
 
@@ -469,8 +472,12 @@ export class Flex extends Block {
 }
 
 export class PopupMenu extends Flex {
-    constructor(data : Attr & { direction?: string, children : UI[] }){
+    click? : (index : number, id? : string, value? : string)=>void;
+
+    constructor(data : Attr & { direction?: string, children : UI[], click? : (index : number)=>void }){
         super(data);
+        this.click = data.click;
+
         document.body.append(this.div);
         this.div.style.display = "none";
         this.div.style.zIndex  = "1";
@@ -480,9 +487,12 @@ export class PopupMenu extends Flex {
             this.backgroundColor = "white";
         }
 
-        const buttons = this.children.filter(x => x instanceof AbstractButton);
-        for(const button of buttons){
+        const buttons = this.children.filter(x => x instanceof AbstractButton) as AbstractButton[];
+        for(const [idx, button] of buttons.entries()){
             button.button.addEventListener("click", (ev : MouseEvent)=>{
+                if(this.click != undefined){
+                    this.click(idx, button.id, button.value);
+                }
                 this.close();
             });
         }
@@ -680,7 +690,7 @@ export function $img(data : Attr) : Img {
     return new Img(data).setStyle(data) as Img;
 }
 
-export function $button(data : Attr & { text? : string, url? : string, click? : MouseEventCallback }) : Button {
+export function $button(data : Attr & { value? : string, text? : string, url? : string, click? : MouseEventCallback }) : Button {
     return new Button(data).setStyle(data) as Button;
 }
 
@@ -704,7 +714,7 @@ export function $flex(data : Attr & { direction?: string, children : UI[] }) : F
     return new Flex(data).setStyle(data) as Flex;
 }
 
-export function $popup(data : Attr & { direction?: string, children : UI[] }) : PopupMenu {
+export function $popup(data : Attr & { direction?: string, children : UI[], click? : (index : number, id? : string, value? : string)=>void }) : PopupMenu {
     return new PopupMenu(data).setStyle(data) as PopupMenu;
 }
 
