@@ -443,11 +443,14 @@ export class Block extends UI {
 }
 
 export class Flex extends Block {
+    static initialWidth = "300px";
     static padding = 2;
+
     direction : string;
 
     constructor(data : Attr & { direction?: string, children : UI[] }){
         super(data);
+        this.div.style.width = Flex.initialWidth;
 
         this.direction = (data.direction != undefined ? data.direction : "row");
         this.children = data.children;
@@ -506,8 +509,6 @@ export class Flex extends Block {
 }
 
 export class PopupMenu extends Flex {
-    static initialWidth = "300px";
-
     click? : (index : number, id? : string, value? : string)=>void;
 
     constructor(data : Attr & { direction?: string, children : UI[], click? : (index : number)=>void }){
@@ -517,7 +518,7 @@ export class PopupMenu extends Flex {
         document.body.append(this.div);
         this.div.style.display = "none";
         this.div.style.zIndex  = "1";
-        this.div.style.width = PopupMenu.initialWidth;
+        this.div.style.width = Flex.initialWidth;
 
 
         if(this.backgroundColor == undefined){
