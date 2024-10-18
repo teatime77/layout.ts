@@ -69,6 +69,11 @@ export abstract class UI {
     aspectRatio? : number;
     colspan : number = 1;
 
+    width_px  : number = NaN;
+    height_px : number = NaN;
+    x_px : number = NaN;
+    y_px : number = NaN;
+
     constructor(data : Attr){   
         Object.assign(this, data);
         this.idx = ++UI.count;
@@ -127,11 +132,10 @@ export abstract class UI {
         return rect.height;
     }
 
-    setWidth(width : number){
-        this.html().style.width = `${width}px`;
-    }
-
     setXY(x : number, y : number){
+        this.x_px = x;
+        this.y_px = y;
+
         const html = this.html();
 
         html.style.left = `${x}px`;
@@ -139,6 +143,9 @@ export abstract class UI {
     }
 
     setSize(width : number, height : number){
+        this.width_px  = width;
+        this.height_px = height;
+
         const html = this.html();
 
         html.style.width  = `${width}px`;
@@ -151,6 +158,10 @@ export abstract class UI {
     layout(x : number, y : number, width : number, height : number){
         this.setXY(x, y);
         this.setSize(width, height);
+    }
+
+    updateLayout(){
+        this.layout(this.x_px, this.y_px, this.width_px, this.height_px);
     }
 
     ratio() : number {
@@ -369,19 +380,8 @@ export class Block extends UI {
         this.div = document.createElement("div");
         this.div.style.position = "absolute";
 
-        this.children = data.children;
-
-        for(const child of this.children){
-            child.parent = this;
-            this.div.append(child.html());
-    
-            if(child instanceof RadioButton){
-
-                child.button.addEventListener("click", (ev:MouseEvent)=>{
-                    child.select(true);                
-                });
-            }
-        }
+        this.children = [];
+        data.children.forEach(x => this.addChild(x));
 
         if(this.children.length != 0 && this.children[0] instanceof RadioButton){
             this.children[0].select(true);
@@ -392,6 +392,20 @@ export class Block extends UI {
 
     html() : HTMLElement {
         return this.div;
+    }
+
+    addChild(child : UI){
+        child.parent = this;
+        this.children.push(child);
+
+        this.div.append(child.html());
+
+        if(child instanceof RadioButton){
+
+            child.button.addEventListener("click", (ev:MouseEvent)=>{
+                child.select(true);                
+            });
+        }
     }
 
     getAllUI() : UI[] {
@@ -420,6 +434,11 @@ export class Block extends UI {
     getUIById(id : string) : UI | undefined {
         const uis = this.getAllUI();
         return uis.find(x => x.id == id);
+    }
+
+    clear(){
+        this.children = [];
+        this.div.innerHTML = "";
     }
 }
 
