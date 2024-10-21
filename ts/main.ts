@@ -1,6 +1,6 @@
 namespace layout_ts {
 //
-type MouseEventCallback = (ev : MouseEvent)=>void;
+type MouseEventCallback = (ev : MouseEvent)=>Promise<void>;
 
 export function bodyOnLoad(){
     i18n_ts.initI18n();
@@ -283,9 +283,9 @@ export class Button extends AbstractButton {
         super(data);
         this.click = data.click;
 
-        this.button.addEventListener("click", (ev:MouseEvent)=>{
+        this.button.addEventListener("click", async (ev:MouseEvent)=>{
             if(this.click != undefined){
-                this.click(ev);
+                await this.click(ev);
             }
         })
     }
@@ -484,7 +484,7 @@ export class Flex extends Block {
             }
 
             for(const [idx, child] of this.children.entries()){
-                msg(`flex y:${child_y} h:${child_heights[idx]} pad:${Flex.padding}`)
+                // msg(`flex y:${child_y} h:${child_heights[idx]} pad:${Flex.padding}`)
                 child.layout(child_x, child_y, child_widths[idx], child_heights[idx]);
 
                 child_y += child_heights[idx] + Flex.padding;
@@ -709,6 +709,96 @@ export class Dialog extends UI {
             this.showStyle(ev);
         })
         this.dlg.showModal();
+    }
+}
+
+
+export class Log extends UI {
+    static one : Log;
+
+    dlg : HTMLDialogElement;
+    pre : HTMLPreElement;
+    texts : string = "";
+    lastText : string = "";
+    count : number = 0;
+
+    static init(){
+        if(Log.one == undefined){
+            Log.one = new Log({ width : `${0.5 * window.innerWidth}px`, height : `${0.5 * window.innerHeight}px` });
+        }
+    }
+
+    static log(text : string){
+        Log.init();
+        Log.one.addText(text);
+    }
+
+    static show(ev : MouseEvent){
+        if(Log.one.dlg.open){
+
+            Log.one.dlg.close();
+        }
+        else{
+
+            Log.init();
+
+            Log.one.dlg.style.marginTop = `${(window.innerHeight - Log.one.height_px) - 20}px`;
+            Log.one.dlg.show();
+        }
+    }
+
+    constructor(data : Attr){
+        super(data);
+        if(data.width == undefined || data.height == undefined){
+            throw new MyError();
+        }
+
+        this.width_px  = pixel(data.width);
+        this.height_px = pixel(data.height);
+
+        this.dlg = document.createElement("dialog");
+        this.dlg.style.position = "fixed";
+        this.dlg.style.width  = `${this.width_px}px`;
+        this.dlg.style.height = `${this.height_px}px`;
+        this.dlg.style.padding = "0";
+        this.dlg.style.marginRight  = "0";
+
+        const div = document.createElement("div");
+        div.style.width  = "100%";
+        div.style.height = "100%";
+        div.style.overflow = "auto"
+        div.style.padding = "0";
+
+        this.pre = document.createElement("pre");
+        this.pre.style.width  = "100%";
+        this.pre.style.height = "100%";
+
+        div.append(this.pre);
+        this.dlg.append(div);
+        document.body.append(this.dlg);
+    }
+
+    html() : HTMLElement {
+        return this.dlg;
+    }
+
+    addText(text : string){
+        if(text == this.lastText){
+            if(text != ""){
+
+                this.count++;
+    
+                this.pre.innerText = this.texts + `\n${this.count}:` + text;    
+            }
+        }
+        else{
+            this.texts += "\n" + this.lastText;
+            this.lastText = text;
+
+            this.pre.innerText = this.texts + "\n" + text;
+
+            this.count = 1;
+        }
     }
 }
 

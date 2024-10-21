@@ -40,7 +40,7 @@ export function assert(b : boolean, msg : string = ""){
 }    
 
 export function msg(txt : string){
-    console.log(txt);
+    Log.log(txt);
 }
 
 export function range(n: number) : number[]{
@@ -161,6 +161,17 @@ export function renderKatexSub(ele: HTMLElement, tex_text: string){
         // newLineInDisplayMode : "ignore",
         macros : getUserMacros()
     });
+}
+
+export function getPhysicalSize() {
+    const width = window.screen.width; // screen width in pixels
+    const height = window.screen.height; // screen height in pixels
+    const dpi = window.devicePixelRatio * 96; // approximate DPI
+
+    const width_cm  = (width  / dpi) * 2.54;
+    const height_cm = (height / dpi) * 2.54;
+
+    return { width_cm, height_cm };
 }
 
 }
