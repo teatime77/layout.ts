@@ -68,7 +68,7 @@ export function makeTestUI(){
                         children : [
                             $button({
                                 text : "Play",
-                                click : (ev:MouseEvent)=>{}
+                                click : async (ev:MouseEvent)=>{}
                             })
                         ],
                         backgroundColor : "violet",
@@ -108,7 +108,7 @@ export function makeTestUI(){
                                 width : "24px",
                                 height : "24px",
                                 url : `${home}/lib/plane/img/text.png`,
-                                click : (ev : MouseEvent)=>{
+                                click : async (ev : MouseEvent)=>{
                                     msg("show text menu");
                                     text_menu.show(ev);
                                 }
@@ -118,7 +118,7 @@ export function makeTestUI(){
                                 width : "24px",
                                 height : "24px",
                                 url : `${home}/lib/plane/img/statement.png`,
-                                click : (ev : MouseEvent)=>{
+                                click : async (ev : MouseEvent)=>{
                                     img_menu.show(ev);
                                 }
                             })

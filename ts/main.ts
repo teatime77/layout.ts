@@ -647,7 +647,7 @@ export class Dialog extends UI {
 
         const ok_button = $button({
             text : "OK",
-            click : (ev:MouseEvent)=>{
+            click : async (ev:MouseEvent)=>{
                 if(this.okClick != undefined){
                     this.okClick(ev);
                 }
@@ -657,7 +657,7 @@ export class Dialog extends UI {
 
         const cancel_button = $button({
             text : "Cancel",
-            click : (ev:MouseEvent)=>{
+            click : async (ev:MouseEvent)=>{
                 this.dlg.close();
             }
         });
@@ -725,6 +725,11 @@ export class Log extends UI {
     static init(){
         if(Log.one == undefined){
             Log.one = new Log({ width : `${0.5 * window.innerWidth}px`, height : `${0.5 * window.innerHeight}px` });
+        }
+        
+        if(Log.one.dlg != document.body.lastChild){
+            document.body.removeChild(Log.one.dlg);
+            document.body.append(Log.one.dlg);
         }
     }
 
