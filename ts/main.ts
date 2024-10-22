@@ -1,6 +1,7 @@
 namespace layout_ts {
 //
 type MouseEventCallback = (ev : MouseEvent)=>Promise<void>;
+type EventCallback = (ev : Event)=>Promise<void>;
 
 export function bodyOnLoad(){
     i18n_ts.initI18n();
@@ -133,6 +134,9 @@ export abstract class UI {
     }
 
     setXY(x : number, y : number){
+        if(x == -100){
+            console.log("");
+        }
         this.x_px = x;
         this.y_px = y;
 
@@ -175,16 +179,24 @@ export abstract class UI {
 }
 
 export abstract class AbstractText extends UI {
+    text : string;
     fontName? : string;
     fontSize? : string;
+
+    constructor(data : Attr & { text : string }){
+        super(data);
+        this.text = data.text;
+    }
 }
 
 export class Label extends AbstractText {
     span : HTMLSpanElement;
 
-    constructor(data : Attr){        
+    constructor(data : Attr & { text : string }){        
         super(data);
+
         this.span = document.createElement("span");
+        this.span.innerText = this.text;
     }
 
     html() : HTMLElement {
@@ -195,7 +207,7 @@ export class Label extends AbstractText {
 export class Text extends AbstractText {
     input : HTMLInputElement;
 
-    constructor(data : Attr){        
+    constructor(data : Attr & { text : string }){
         super(data);
         this.input = document.createElement("input");
     }
@@ -205,11 +217,57 @@ export class Text extends AbstractText {
     }
 }
 
+export class InputNumber extends UI {
+    input : HTMLInputElement;
+    change? : (ev : Event)=>Promise<void>
+
+    constructor(data : Attr & { value? : number, step? : number, min? : number, max? : number, change? : EventCallback }){
+        super(data);
+        this.change = data.change;
+        
+        if(data.width == undefined){
+            data.width = "50px";
+        }
+
+        this.input = document.createElement("input");
+        this.input.type = "number";
+
+        if(data.value != undefined){
+            this.input.value = `${data.value}`;
+        }
+        if(data.step != undefined){
+            this.input.step = `${data.step}`;
+        }
+        if(data.min != undefined){
+            this.input.min = `${data.min}`;
+        }
+        if(data.max != undefined){
+            this.input.max = `${data.max}`;
+        }
+
+        this.input.addEventListener("change", async (ev : Event)=>{
+            if(this.change != undefined){
+                await this.change(ev);
+            }
+        });
+    }
+
+    html() : HTMLElement {
+        return this.input;
+    }
+
+    value() : number {
+        return parseFloat(this.input.value);
+    }
+}
+
 export class TextArea extends UI {
     textArea : HTMLTextAreaElement;
+    change? : EventCallback;
 
-    constructor(data : Attr & { value? : string, cols : number, rows : number }){
+    constructor(data : Attr & { value? : string, cols : number, rows : number, change? : EventCallback }){
         super(data);
+        this.change = data.change;
         this.textArea = document.createElement("textarea");
         if(data.value != undefined){
             this.textArea.value = data.value;
@@ -217,6 +275,12 @@ export class TextArea extends UI {
 
         this.textArea.cols = data.cols;
         this.textArea.rows = data.rows;
+
+        this.textArea.addEventListener("input", async (ev : Event)=>{
+            if(this.change != undefined){
+                await this.change(ev);
+            }
+        });
     }
 
     html() : HTMLElement {
@@ -299,14 +363,12 @@ export class Button extends AbstractButton {
     }
 }
 
-export class CheckBox extends UI {
-    text : string;
+export class CheckBox extends AbstractText {
     input : HTMLInputElement;
     span  : HTMLSpanElement;
 
     constructor(data : Attr & { text : string }){
         super(data);
-        this.text = data.text;
 
         this.input = document.createElement("input");
         this.input.type = "checkbox";
@@ -485,6 +547,11 @@ export class Flex extends Block {
             if(!isNaN(width)){
                 const max_width = Math.max(... child_widths);
                 child_x = 0.5 * (width - max_width);
+                if(child_x == -100){
+                    const child_widths_2  = this.children.map(x => x.getWidth());
+                    console.log("child_x == -100");
+                }
+                child_x = Math.max(0, child_x);
             }
 
             for(const [idx, child] of this.children.entries()){
@@ -842,15 +909,19 @@ export class Log extends UI {
     }
 }
 
-export function $label(data : Attr) : Label {
+export function $label(data : Attr & { text : string }) : Label {
     return new Label(data).setStyle(data) as Label;
 }
 
-export function $text(data : Attr) : Text {
+export function $text(data : Attr & { text : string }) : Text {
     return new Text(data).setStyle(data) as Text;
 }
 
-export function $textarea(data : Attr & { value? : string, cols : number, rows : number }) : TextArea {
+export function $input_number(data : Attr & { value? : number, step? : number, min? : number, max? : number, change? : EventCallback }) : InputNumber {
+    return new InputNumber(data).setStyle(data) as InputNumber;
+}
+
+export function $textarea(data : Attr & { value? : string, cols : number, rows : number, change? : EventCallback }) : TextArea {
     return new TextArea(data).setStyle(data) as TextArea;
 }
 
