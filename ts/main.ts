@@ -222,6 +222,10 @@ export class TextArea extends UI {
     html() : HTMLElement {
         return this.textArea;
     }
+
+    value() : string {
+        return this.textArea.value;
+    }
 }
 
 export class Img extends UI {
@@ -644,6 +648,7 @@ export class Dialog extends UI {
 
         this.dlg = document.createElement("dialog");
         this.dlg.style.position = "fixed";
+        this.dlg.style.zIndex  = "1";
 
         const ok_button = $button({
             text : "OK",
@@ -683,6 +688,14 @@ export class Dialog extends UI {
         return this.dlg;
     }
 
+    setXY(x : number, y : number){
+        this.x_px = x;
+        this.y_px = y;
+
+        this.dlg.style.marginLeft = `${x}px`;
+        this.dlg.style.marginTop  = `${y}px`;
+    }
+
     showStyle(ev : MouseEvent){
         const width = pixel(this.width!);
         const height = pixel(this.height!);
@@ -697,9 +710,26 @@ export class Dialog extends UI {
         this.dlg.style.marginTop  = `${ev.pageY}px`;
     }
 
+    open() : boolean {
+        return this.dlg.open;
+    }
+
+    close(){
+        this.dlg.close();
+    }
+
     show(ev : MouseEvent){
         this.dlg.show();
         this.showStyle(ev);
+    }
+
+    toggleShow(ev : MouseEvent){
+        if(this.dlg.open){
+            this.dlg.close();
+        }
+        else{
+            this.show(ev);
+        }
     }
 
     showModal(ev : MouseEvent){
@@ -709,6 +739,15 @@ export class Dialog extends UI {
             this.showStyle(ev);
         })
         this.dlg.showModal();
+    }
+
+    getAllUI() : UI[] {
+        let uis : UI[] = [ this ];
+        return uis.concat(this.grid.getAllUI());
+    }
+
+    getUIById(id : string) : UI | undefined {
+        return this.getAllUI().find(x => x.id == id);
     }
 }
 
@@ -725,11 +764,6 @@ export class Log extends UI {
     static init(){
         if(Log.one == undefined){
             Log.one = new Log({ width : `${0.5 * window.innerWidth}px`, height : `${0.5 * window.innerHeight}px` });
-        }
-        
-        if(Log.one.dlg != document.body.lastChild){
-            document.body.removeChild(Log.one.dlg);
-            document.body.append(Log.one.dlg);
         }
     }
 
@@ -767,6 +801,7 @@ export class Log extends UI {
         this.dlg.style.height = `${this.height_px}px`;
         this.dlg.style.padding = "0";
         this.dlg.style.marginRight  = "0";
+        this.dlg.style.zIndex = "1";
 
         const div = document.createElement("div");
         div.style.width  = "100%";
