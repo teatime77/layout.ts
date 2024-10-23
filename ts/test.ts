@@ -1,28 +1,26 @@
 namespace layout_ts {
 //
 export function makeTestUI(){
-    const k = document.location.href.lastIndexOf("/");
-    const home = document.location.href.substring(0, k);
-    msg(`home:${home}`);
+    const [ origin, , ] = i18n_ts.parseURL();
 
     const img_menu = $popup({
         children : [
             $button({
                 width : "24px",
                 height : "24px",
-                url : `${home}/lib/plane/img/line-segment.png`
+                url : `${origin}/lib/plane/img/line-segment.png`
             })
             ,
             $button({
                 width : "24px",
                 height : "24px",
-                url : `${home}/lib/plane/img/half-line.png`
+                url : `${origin}/lib/plane/img/half-line.png`
             })
             ,
             $button({
                 width : "24px",
                 height : "24px",
-                url : `${home}/lib/plane/img/line.png`
+                url : `${origin}/lib/plane/img/line.png`
             })
         ]
     });
@@ -87,7 +85,7 @@ export function makeTestUI(){
                                 title : "",
                                 width : "24px",
                                 height : "24px",
-                                url : `${home}/lib/plane/img/selection.png`
+                                url : `${origin}/lib/plane/img/selection.png`
                             })
                             ,
                             $radio({
@@ -95,7 +93,7 @@ export function makeTestUI(){
                                 title : "",
                                 width : "24px",
                                 height : "24px",
-                                url : `${home}/lib/plane/img/point.png`
+                                url : `${origin}/lib/plane/img/point.png`
                             })
                         ],
                         backgroundColor : "green",
@@ -107,7 +105,7 @@ export function makeTestUI(){
                                 id : "add-statement",
                                 width : "24px",
                                 height : "24px",
-                                url : `${home}/lib/plane/img/text.png`,
+                                url : `${origin}/lib/plane/img/text.png`,
                                 click : async (ev : MouseEvent)=>{
                                     msg("show text menu");
                                     text_menu.show(ev);
@@ -117,7 +115,7 @@ export function makeTestUI(){
                             $button({
                                 width : "24px",
                                 height : "24px",
-                                url : `${home}/lib/plane/img/statement.png`,
+                                url : `${origin}/lib/plane/img/statement.png`,
                                 click : async (ev : MouseEvent)=>{
                                     img_menu.show(ev);
                                 }
