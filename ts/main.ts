@@ -156,7 +156,7 @@ export abstract class UI {
         html.style.height = `${height}px`;
     }
 
-    select(selected : boolean){
+    selectUI(selected : boolean){
     }
 
     layout(x : number, y : number, width : number, height : number){
@@ -403,7 +403,7 @@ export class RadioButton extends AbstractButton {
         return this.button;
     }
 
-    select(selected : boolean){
+    selectUI(selected : boolean){
         if(this.parent == undefined){
             throw new MyError();
         }
@@ -411,7 +411,7 @@ export class RadioButton extends AbstractButton {
         if(this.parent.selectedUI != undefined){
             const old_selected = this.parent.selectedUI;
             this.parent.selectedUI = undefined;
-            old_selected.select(false);
+            old_selected.selectUI(false);
         }
 
         const html = this.html();
@@ -450,7 +450,7 @@ export class Block extends UI {
         data.children.forEach(x => this.addChild(x));
 
         if(this.children.length != 0 && this.children[0] instanceof RadioButton){
-            this.children[0].select(true);
+            this.children[0].selectUI(true);
         }
 
         this.children.forEach(x => this.div.append(x.html()));
@@ -469,7 +469,7 @@ export class Block extends UI {
         if(child instanceof RadioButton){
 
             child.button.addEventListener("click", (ev:MouseEvent)=>{
-                child.select(true);                
+                child.selectUI(true);                
             });
         }
     }
@@ -837,6 +837,7 @@ export class Log extends UI {
     static log(text : string){
         Log.init();
         Log.one.addText(text);
+        console.log(text);
     }
 
     static show(ev : MouseEvent){
