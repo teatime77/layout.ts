@@ -579,41 +579,60 @@ export class Flex extends Block {
     }
 }
 
-export class PopupMenu extends Flex {
+export class PopupMenu extends UI {
+    dlg  : HTMLDialogElement;
+    flex : Flex;
     click? : (index : number, id? : string, value? : string)=>void;
 
-    constructor(data : Attr & { direction?: string, children : UI[], click? : (index : number)=>void }){
+    constructor(data : Attr & { children : UI[], click? : (index : number)=>void }){
         super(data);
         this.click = data.click;
 
-        document.body.append(this.div);
-        this.div.style.display = "none";
-        this.div.style.zIndex  = "1";
-        this.div.style.width = Flex.initialWidth;
+        this.dlg = document.createElement("dialog");
+        this.dlg.style.position = "fixed";
+        this.dlg.style.zIndex  = "1";
 
 
-        if(this.backgroundColor == undefined){
-            this.backgroundColor = "white";
-        }
+        this.flex = $flex({
+            direction : "column",
+            children : data.children
+        });
 
-        const buttons = this.children.filter(x => x instanceof AbstractButton) as AbstractButton[];
-        for(const [idx, button] of buttons.entries()){
-            button.button.addEventListener("click", (ev : MouseEvent)=>{
-                if(this.click != undefined){
-                    this.click(idx, button.id, button.value);
+        for(const child of data.children){
+            child.html().addEventListener("click", (ev : MouseEvent)=>{
+                const dlgs = document.body.getElementsByTagName("dialog");
+                for(const dlg of dlgs){
+
+                    dlg.close();
                 }
-                this.close();
-            });
+            })
         }
+
+        this.dlg.append(this.flex.div);
+
+        document.body.append(this.dlg);
+    }
+
+    html(): HTMLElement {
+        return this.dlg;
     }
 
     show(ev : MouseEvent){
-        this.div.style.display = "inline-block";
-        this.layout(ev.pageX, ev.pageY, NaN, NaN);
+        setTimeout(()=>{
+            this.flex.layout(0, 0, NaN, NaN);
+
+            this.dlg.style.width  = `${this.flex.width_px}px`;
+            this.dlg.style.height = `${this.flex.height_px}px`;
+    
+            this.dlg.style.marginLeft = `${ev.pageX}px`;
+            this.dlg.style.marginTop  = `${ev.pageY}px`;
+    
+        });
+        this.dlg.showModal();
     }
 
     close(){        
-        this.div.style.display = "none";
+        this.dlg.close();
     }
 }
 
