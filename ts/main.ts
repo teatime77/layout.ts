@@ -326,9 +326,9 @@ abstract class AbstractButton extends UI {
             const img = document.createElement("img");
             img.src = data.url;
     
-            if(data.width == undefined || data.height == undefined){
-                throw new MyError();
-            }
+            // if(data.width == undefined || data.height == undefined){
+            //     throw new MyError();
+            // }
 
             // img.style.position = "absolute";
             // img.style.left   = `${AbstractButton.imgMargin}px`;
@@ -363,9 +363,24 @@ export class Button extends AbstractButton {
     }
 }
 
+export class Anchor extends UI {
+    anchor : HTMLAnchorElement;
+
+    constructor(data : Attr & { text? : string, url? : string }){
+        super(data);
+
+        this.anchor = document.createElement("a");
+    }
+
+    html() : HTMLElement {
+        return this.anchor;
+    }
+}
+
 export class CheckBox extends AbstractText {
     input : HTMLInputElement;
     span  : HTMLSpanElement;
+    change? : (target : CheckBox)=>void;
 
     constructor(data : Attr & { text : string }){
         super(data);
@@ -380,12 +395,21 @@ export class CheckBox extends AbstractText {
 
         this.span = document.createElement("span");
         this.span.append(this.input);
-        this.span.append(label)
+        this.span.append(label);
 
+        this.input.addEventListener("change", (ev : Event)=>{
+            if(this.change != undefined){
+                this.change(this);
+            }
+        });
     }
 
     html() : HTMLElement {
         return this.span;
+    }
+
+    checked() : boolean {
+        return this.input.checked;
     }
 }
 
@@ -472,6 +496,17 @@ export class Block extends UI {
                 child.selectUI(true);                
             });
         }
+    }
+
+    popChild(){
+        if(this.children.length == 0){
+            return;
+        }
+
+        const child = this.children.pop()!;
+        child.parent = undefined;
+
+        this.div.removeChild(child.html());
     }
 
     getAllUI() : UI[] {
@@ -929,6 +964,18 @@ export class Log extends UI {
     }
 }
 
+export function saveBlob(anchor : Anchor, name : string, blob : Blob){
+    // a 要素の href 属性に Object URL をセット
+    anchor.anchor.href = window.URL.createObjectURL(blob);
+    
+    // a 要素の download 属性にファイル名をセット
+    anchor.anchor.download = `${name}.json`;
+    
+    // 疑似的に a 要素をクリックさせる
+    anchor.anchor.click();
+
+}
+
 export function $label(data : Attr & { text : string }) : Label {
     return new Label(data).setStyle(data) as Label;
 }
@@ -953,7 +1000,11 @@ export function $button(data : Attr & { value? : string, text? : string, url? : 
     return new Button(data).setStyle(data) as Button;
 }
 
-export function $checkbox(data : Attr & { text : string }) : CheckBox {
+export function $anchor(data : Attr & { text? : string, url? : string }) : Anchor {
+    return new Anchor(data).setStyle(data) as Anchor;
+}
+
+export function $checkbox(data : Attr & { text : string, change? : (target : CheckBox)=>void }) : CheckBox {
     return new CheckBox(data).setStyle(data) as CheckBox;
 }
 
