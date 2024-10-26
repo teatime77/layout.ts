@@ -204,12 +204,19 @@ export class Label extends AbstractText {
     }
 }
 
-export class Text extends AbstractText {
+abstract class AbstractInput extends UI {
     input : HTMLInputElement;
+    change? : (ev : Event)=>Promise<void>;
 
-    constructor(data : Attr & { text : string }){
+    constructor(data : Attr){
         super(data);
         this.input = document.createElement("input");
+
+        this.input.addEventListener("change", async (ev : Event)=>{
+            if(this.change != undefined){
+                await this.change(ev);
+            }
+        });
     }
 
     html() : HTMLElement {
@@ -217,9 +224,24 @@ export class Text extends AbstractText {
     }
 }
 
-export class InputNumber extends UI {
-    input : HTMLInputElement;
-    change? : (ev : Event)=>Promise<void>
+export class InputText extends AbstractInput {
+    
+    constructor(data : Attr & { text : string, change? : EventCallback }){
+        super(data);
+        this.input.type = "text";
+    }
+}
+
+
+export class InputColor extends AbstractInput {
+    constructor(data : Attr & { text : string, change? : EventCallback }){
+        super(data);
+        this.input.type = "color";
+    }
+}
+
+
+export class InputNumber extends AbstractInput {
 
     constructor(data : Attr & { value? : number, step? : number, min? : number, max? : number, change? : EventCallback }){
         super(data);
@@ -229,7 +251,6 @@ export class InputNumber extends UI {
             data.width = "50px";
         }
 
-        this.input = document.createElement("input");
         this.input.type = "number";
 
         if(data.value != undefined){
@@ -244,20 +265,37 @@ export class InputNumber extends UI {
         if(data.max != undefined){
             this.input.max = `${data.max}`;
         }
-
-        this.input.addEventListener("change", async (ev : Event)=>{
-            if(this.change != undefined){
-                await this.change(ev);
-            }
-        });
-    }
-
-    html() : HTMLElement {
-        return this.input;
     }
 
     value() : number {
         return parseFloat(this.input.value);
+    }
+}
+
+export class CheckBox extends AbstractInput {
+    span  : HTMLSpanElement;
+
+    constructor(data : Attr & { text : string, change? : EventCallback }){
+        super(data);
+
+        this.input.type = "checkbox";
+        this.input.id = `layout.ts-checkbox-${this.idx}`;
+    
+        const label = document.createElement("label");
+        label.htmlFor = this.input.id;
+        label.textContent = data.text;    
+
+        this.span = document.createElement("span");
+        this.span.append(this.input);
+        this.span.append(label);
+    }
+
+    html() : HTMLElement {
+        return this.span;
+    }
+
+    checked() : boolean {
+        return this.input.checked;
     }
 }
 
@@ -374,42 +412,6 @@ export class Anchor extends UI {
 
     html() : HTMLElement {
         return this.anchor;
-    }
-}
-
-export class CheckBox extends AbstractText {
-    input : HTMLInputElement;
-    span  : HTMLSpanElement;
-    change? : (target : CheckBox)=>void;
-
-    constructor(data : Attr & { text : string }){
-        super(data);
-
-        this.input = document.createElement("input");
-        this.input.type = "checkbox";
-        this.input.id = `layout.ts-checkbox-${this.idx}`;
-    
-        const label = document.createElement("label");
-        label.htmlFor = this.input.id;
-        label.textContent = this.text;    
-
-        this.span = document.createElement("span");
-        this.span.append(this.input);
-        this.span.append(label);
-
-        this.input.addEventListener("change", (ev : Event)=>{
-            if(this.change != undefined){
-                this.change(this);
-            }
-        });
-    }
-
-    html() : HTMLElement {
-        return this.span;
-    }
-
-    checked() : boolean {
-        return this.input.checked;
     }
 }
 
@@ -872,7 +874,6 @@ export class Dialog extends UI {
     }
 }
 
-
 export class Log extends UI {
     static one : Log;
 
@@ -980,12 +981,20 @@ export function $label(data : Attr & { text : string }) : Label {
     return new Label(data).setStyle(data) as Label;
 }
 
-export function $text(data : Attr & { text : string }) : Text {
-    return new Text(data).setStyle(data) as Text;
+export function $input_text(data : Attr & { text : string, change? : EventCallback }) : InputText {
+    return new InputText(data).setStyle(data) as InputText;
+}
+
+export function $input_color(data : Attr & { text : string, change? : EventCallback }) : InputColor {
+    return new InputColor(data).setStyle(data) as InputColor;
 }
 
 export function $input_number(data : Attr & { value? : number, step? : number, min? : number, max? : number, change? : EventCallback }) : InputNumber {
     return new InputNumber(data).setStyle(data) as InputNumber;
+}
+
+export function $checkbox(data : Attr & { text : string, change? : EventCallback }) : CheckBox {
+    return new CheckBox(data).setStyle(data) as CheckBox;
 }
 
 export function $textarea(data : Attr & { value? : string, cols : number, rows : number, change? : EventCallback }) : TextArea {
@@ -1002,10 +1011,6 @@ export function $button(data : Attr & { value? : string, text? : string, url? : 
 
 export function $anchor(data : Attr & { text? : string, url? : string }) : Anchor {
     return new Anchor(data).setStyle(data) as Anchor;
-}
-
-export function $checkbox(data : Attr & { text : string, change? : (target : CheckBox)=>void }) : CheckBox {
-    return new CheckBox(data).setStyle(data) as CheckBox;
 }
 
 export function $radio(data : Attr & { value : string, title : string, text? : string, url? : string }) : RadioButton {
