@@ -1,7 +1,10 @@
+install.bat
+debug.log
+
+ts/@types
+
+public/katex
 public/lib/i18n
 public/lib/plane
-public/katex
-install.bat
 public/lib/layout
-ts/@types
-debug.log
+public/lib/parser

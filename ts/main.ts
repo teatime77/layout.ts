@@ -204,6 +204,30 @@ export class Label extends AbstractText {
     }
 }
 
+export class TexUI extends AbstractText {
+    div : HTMLDivElement;
+
+    constructor(data : Attr & { text : string }){        
+        super(data);
+
+        this.div = document.createElement("div");
+        if(this.parent == undefined){
+            throw new MyError();
+        }
+
+        this.parent.addChild(this)
+    }
+
+    html() : HTMLElement {
+        return this.div;
+    }
+
+    setText(text : string){
+        this.text = text;
+        parser_ts.renderKatexSub(this.div, this.text);
+    }
+}
+
 abstract class AbstractInput extends UI {
     input : HTMLInputElement;
     change? : (ev : Event)=>Promise<void>;
@@ -229,6 +253,7 @@ export class InputText extends AbstractInput {
     constructor(data : Attr & { text : string, change? : EventCallback }){
         super(data);
         this.input.type = "text";
+        this.input.value = data.text;
     }
 }
 
@@ -325,7 +350,7 @@ export class TextArea extends UI {
         return this.textArea;
     }
 
-    value() : string {
+    getValue() : string {
         return this.textArea.value;
     }
 }
