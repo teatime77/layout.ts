@@ -232,8 +232,10 @@ abstract class AbstractInput extends UI {
     input : HTMLInputElement;
     change? : (ev : Event)=>Promise<void>;
 
-    constructor(data : Attr){
+    constructor(data : Attr & { change? : EventCallback }){
         super(data);
+        this.change = data.change;
+
         this.input = document.createElement("input");
 
         this.input.addEventListener("change", async (ev : Event)=>{
@@ -270,7 +272,6 @@ export class InputNumber extends AbstractInput {
 
     constructor(data : Attr & { value? : number, step? : number, min? : number, max? : number, change? : EventCallback }){
         super(data);
-        this.change = data.change;
         
         if(data.width == undefined){
             data.width = "50px";
