@@ -238,11 +238,24 @@ abstract class AbstractInput extends UI {
 
         this.input = document.createElement("input");
 
-        this.input.addEventListener("change", async (ev : Event)=>{
-            if(this.change != undefined){
-                await this.change(ev);
-            }
-        });
+        if(this instanceof InputText){
+
+            this.input.addEventListener("input", async (ev : Event)=>{
+                msg("input event");
+                if(this.change != undefined){
+                    await this.change(ev);
+                }
+            });
+        }
+        else{
+
+            this.input.addEventListener("change", async (ev : Event)=>{
+                msg("change event");
+                if(this.change != undefined){
+                    await this.change(ev);
+                }
+            });
+        }
     }
 
     html() : HTMLElement {
