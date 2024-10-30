@@ -206,11 +206,19 @@ export class Label extends AbstractText {
 
 export class TexUI extends AbstractText {
     div : HTMLDivElement;
+    click? : MouseEventCallback;
 
-    constructor(data : Attr & { text : string }){        
+    constructor(data : Attr & { text : string, click? : MouseEventCallback }){        
         super(data);
+        this.click = data.click;
 
         this.div = document.createElement("div");
+        this.div.addEventListener("click", async (ev:MouseEvent)=>{
+            if(this.click != undefined){
+                await this.click(ev);
+            }
+        });
+
         if(this.parent == undefined){
             throw new MyError();
         }
@@ -225,6 +233,14 @@ export class TexUI extends AbstractText {
     setText(text : string){
         this.text = text;
         parser_ts.renderKatexSub(this.div, this.text);
+    }
+
+    show(){
+        this.div.style.display = "";
+    }
+
+    hide(){
+        this.div.style.display = "none";
     }
 }
 
@@ -432,7 +448,7 @@ export class Button extends AbstractButton {
             if(this.click != undefined){
                 await this.click(ev);
             }
-        })
+        });
     }
 
     html() : HTMLElement {
