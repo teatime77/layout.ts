@@ -213,6 +213,9 @@ export class TexUI extends AbstractText {
         this.click = data.click;
 
         this.div = document.createElement("div");
+        this.div.style.borderStyle = "ridge";
+        this.div.style.borderWidth = "3px";
+        this.div.style.borderColor = "transparent";
         this.div.addEventListener("click", async (ev:MouseEvent)=>{
             if(this.click != undefined){
                 await this.click(ev);
@@ -233,6 +236,10 @@ export class TexUI extends AbstractText {
     setText(text : string){
         this.text = text;
         parser_ts.renderKatexSub(this.div, this.text);
+    }
+
+    setBorderColor(color : string){
+        this.div.style.borderColor = color;
     }
 
     show(){
