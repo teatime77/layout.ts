@@ -329,7 +329,7 @@ export class InputNumber extends AbstractInput {
         }
     }
 
-    value() : number {
+    getValue() : number {
         return parseFloat(this.input.value);
     }
 }
