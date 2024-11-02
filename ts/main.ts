@@ -442,6 +442,13 @@ abstract class AbstractButton extends UI {
             this.button.append(img);    
         }
     }
+
+    // removeButton(){
+    //     if(this.parent == undefined){
+    //         throw new MyError();
+    //     }
+    //     this.parent.removeChild(this);
+    // }
 }
 
 export class Button extends AbstractButton {
@@ -570,6 +577,16 @@ export class Block extends UI {
         const child = this.children.pop()!;
         child.parent = undefined;
 
+        this.div.removeChild(child.html());
+    }
+
+    removeChild(child : UI){
+        const idx = this.children.indexOf(child);
+        if(idx == -1){
+            throw new MyError();
+        }
+
+        this.children.splice(idx, 1);
         this.div.removeChild(child.html());
     }
 
