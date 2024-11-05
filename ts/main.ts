@@ -180,19 +180,37 @@ export abstract class UI {
 
 export abstract class AbstractText extends UI {
     text : string;
-    fontName? : string;
-    fontSize? : string;
+    fontSize : string | undefined;
 
-    constructor(data : Attr & { text : string }){
+    constructor(data : Attr & { text : string, fontSize? : string }){
         super(data);
         this.text = data.text;
+        if(data.fontSize != undefined){
+            this.fontSize = data.fontSize;            
+        }
+    }
+
+    setStyle(data : Attr & { fontSize? : string }) : UI {
+        super.setStyle(data);
+
+        const ele = this.html();
+
+        if(this.fontSize != undefined){
+            ele.style.fontSize = this.fontSize;
+        }
+
+        return this;
+    }
+
+    setText(text : string){
+        this.text = text;
     }
 }
 
 export class Label extends AbstractText {
     span : HTMLSpanElement;
 
-    constructor(data : Attr & { text : string }){        
+    constructor(data : Attr & { text : string, fontSize? : string }){        
         super(data);
 
         this.span = document.createElement("span");
@@ -204,18 +222,58 @@ export class Label extends AbstractText {
     }
 }
 
-export class TexUI extends AbstractText {
+export abstract class TextDiv extends AbstractText {
     div : HTMLDivElement;
-    click? : MouseEventCallback;
 
-    constructor(data : Attr & { text : string, click? : MouseEventCallback }){        
+    constructor(data : Attr & { text : string, fontSize? : string }){
         super(data);
-        this.click = data.click;
-
         this.div = document.createElement("div");
         this.div.style.borderStyle = "ridge";
         this.div.style.borderWidth = "3px";
         this.div.style.borderColor = "transparent";
+    }
+
+    html() : HTMLElement {
+        return this.div;
+    }
+
+    show(){
+        this.div.style.display = "";
+    }
+
+    hide(){
+        this.div.style.display = "none";
+    }
+
+    setBorderColor(color : string){
+        this.div.style.borderColor = color;
+    }
+}
+
+export class TextBox extends TextDiv {
+    constructor(data : Attr & { text : string, fontSize? : string }){
+        super(data);
+        this.div.innerHTML = data.text;
+        this.div.style.position = "absolute";
+    }
+
+    setText(text : string){
+        super.setText(text);
+        this.div.innerHTML = text;
+    }
+
+    clearText(){
+        this.setText("");
+    }
+}
+
+export class LaTeXBox extends TextDiv {
+    click? : MouseEventCallback;
+
+    constructor(data : Attr & { text : string, fontSize? : string, click? : MouseEventCallback }){        
+        super(data);
+        this.click = data.click;
+
         this.div.addEventListener("click", async (ev:MouseEvent)=>{
             if(this.click != undefined){
                 await this.click(ev);
@@ -229,25 +287,9 @@ export class TexUI extends AbstractText {
         this.parent.addChild(this)
     }
 
-    html() : HTMLElement {
-        return this.div;
-    }
-
     setText(text : string){
-        this.text = text;
+        super.setText(text);
         parser_ts.renderKatexSub(this.div, this.text);
-    }
-
-    setBorderColor(color : string){
-        this.div.style.borderColor = color;
-    }
-
-    show(){
-        this.div.style.display = "";
-    }
-
-    hide(){
-        this.div.style.display = "none";
     }
 }
 
@@ -1056,7 +1098,7 @@ export function saveBlob(anchor : Anchor, name : string, blob : Blob){
 
 }
 
-export function $label(data : Attr & { text : string }) : Label {
+export function $label(data : Attr & { text : string, fontSize? : string }) : Label {
     return new Label(data).setStyle(data) as Label;
 }
 
@@ -1094,6 +1136,10 @@ export function $anchor(data : Attr & { text? : string, url? : string }) : Ancho
 
 export function $radio(data : Attr & { value : string, title : string, text? : string, url? : string }) : RadioButton {
     return new RadioButton(data).setStyle(data) as RadioButton;
+}
+
+export function $textbox(data : Attr & { text : string, fontSize? : string }) : TextBox {
+    return new TextBox(data).setStyle(data) as TextBox;
 }
 
 export function $block(data : Attr & { children : UI[] }) : Block {
