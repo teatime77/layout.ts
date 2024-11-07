@@ -827,9 +827,21 @@ export class Grid extends Block {
         const remaining_width = width - fixed_width;
         widths = this.columns.map(x => pixel(x, remaining_width));
 
-        const fixed_height = sum(this.rows.filter(x => x.endsWith("px")).map(x => pixel(x)));
-        const remaining_height = height - fixed_height;
-        heights = this.rows.map(x => pixel(x, remaining_height));
+        if(this.rows[0] == "auto"){
+            const ncol = this.columns.length;
+            heights = [];
+            for(const idx of range(Math.ceil(this.children.length / ncol))){
+                const base = idx * ncol;
+                const max_height = Math.max(... this.children.slice(base, base + ncol).map(x => pixel(x.height!)));
+                heights.push(max_height);
+            }
+        }
+        else{
+
+            const fixed_height = sum(this.rows.filter(x => x.endsWith("px")).map(x => pixel(x)));
+            const remaining_height = height - fixed_height;
+            heights = this.rows.map(x => pixel(x, remaining_height));
+        }
 
         let row = 0;
         let col = 0;
