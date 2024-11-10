@@ -45,9 +45,12 @@ interface Attr {
     parent? : Block;
     obj? : any;
     name? : string;
+    color? : string;
     backgroundColor? : string;
     borderStyle? : string;
     borderWidth? : number;
+    padding? : string;
+    textAlign? : string;
     colspan? : number;
     width? : string;
     height? : string;
@@ -62,9 +65,12 @@ export abstract class UI {
     parent? : Block;
     obj? : any;
     name? : string;
+    color? : string;
     backgroundColor? : string;
     borderStyle? : string;
     borderWidth? : number;
+    padding? : string;
+    textAlign? : string;
     width? : string;
     height? : string;
     aspectRatio? : number;
@@ -90,8 +96,21 @@ export abstract class UI {
         if(this.borderWidth != undefined){
             ele.style.borderWidth = `${this.borderWidth}`;
         }
+
         if(this.borderStyle != undefined){
             ele.style.borderStyle = this.borderStyle;
+        }
+
+        if(this.padding != undefined){
+            ele.style.padding = this.padding;
+        }
+
+        if(this.textAlign != undefined){
+            ele.style.textAlign = this.textAlign;
+        }
+
+        if(this.color != undefined){
+            ele.style.color = this.color;
         }
 
         if(this.backgroundColor != undefined){
@@ -152,8 +171,10 @@ export abstract class UI {
 
         const html = this.html();
 
-        html.style.width  = `${width}px`;
-        html.style.height = `${height}px`;
+        const padding = (this.padding != undefined ? pixel(this.padding) : 0);
+
+        html.style.width  = `${width  - padding * 2}px`;
+        html.style.height = `${height - padding * 2}px`;
     }
 
     selectUI(selected : boolean){
@@ -228,9 +249,9 @@ export abstract class TextDiv extends AbstractText {
     constructor(data : Attr & { text : string, fontSize? : string }){
         super(data);
         this.div = document.createElement("div");
-        this.div.style.borderStyle = "ridge";
-        this.div.style.borderWidth = "3px";
-        this.div.style.borderColor = "transparent";
+        // this.div.style.borderStyle = "ridge";
+        // this.div.style.borderWidth = "3px";
+        // this.div.style.borderColor = "transparent";
     }
 
     html() : HTMLElement {
