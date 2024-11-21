@@ -47,7 +47,6 @@ export function makeTestUI(){
         children:[
             $block({
                 children : [],
-                backgroundColor : "chocolate",
             })
             ,
             $grid({
@@ -59,7 +58,6 @@ export function makeTestUI(){
                                 text : "Axis"
                             })
                         ],
-                        backgroundColor : "lime",
                     })
                     ,
                     $block({
@@ -69,7 +67,6 @@ export function makeTestUI(){
                                 click : async (ev:MouseEvent)=>{}
                             })
                         ],
-                        backgroundColor : "violet",
                     })
                 ]
             })
@@ -96,7 +93,6 @@ export function makeTestUI(){
                                 url : `${origin}/lib/plane/img/point.png`
                             })
                         ],
-                        backgroundColor : "green",
                     })
                     ,
                     $block({
@@ -122,18 +118,15 @@ export function makeTestUI(){
                             })
                         ],
                         aspectRatio : 1,
-                        backgroundColor : "blue",
                     })
                     ,
                     $block({
                         children : [],
                         aspectRatio : 1,
-                        backgroundColor : "orange",
                     })
                     ,
                     $block({
                         children : [],
-                        backgroundColor : "cyan",
                     }),
                 ]
             })

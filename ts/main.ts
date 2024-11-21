@@ -3,6 +3,9 @@ namespace layout_ts {
 type MouseEventCallback = (ev : MouseEvent)=>Promise<void>;
 type EventCallback = (ev : Event)=>Promise<void>;
 
+export const bgColor = "#003000";
+export const fgColor = "white";
+
 export function bodyOnLoad(){
     i18n_ts.initI18n();
 
@@ -115,6 +118,9 @@ export abstract class UI {
 
         if(this.backgroundColor != undefined){
             ele.style.backgroundColor = this.backgroundColor;
+        }
+        else{
+            ele.style.backgroundColor = bgColor;
         }
 
         if(data.width != undefined){
@@ -323,6 +329,7 @@ abstract class AbstractInput extends UI {
         this.change = data.change;
 
         this.input = document.createElement("input");
+        this.input.style.color = fgColor;
 
         if(this instanceof InputText){
 
@@ -409,6 +416,7 @@ export class CheckBox extends AbstractInput {
         const label = document.createElement("label");
         label.htmlFor = this.input.id;
         label.textContent = data.text;    
+        label.style.color = fgColor;
 
         this.span = document.createElement("span");
         this.span.append(this.input);
@@ -438,6 +446,7 @@ export class TextArea extends UI {
 
         this.textArea.cols = data.cols;
         this.textArea.rows = data.rows;
+        this.textArea.style.color = fgColor;
 
         this.textArea.addEventListener("input", async (ev : Event)=>{
             if(this.change != undefined){
@@ -480,6 +489,7 @@ abstract class AbstractButton extends UI {
         this.button = document.createElement("button");
         this.button.style.position = "absolute";
         this.button.style.padding = "1px";
+        this.button.style.color = fgColor;
 
         if(data.text != undefined){
             this.button.innerText = data.text;
