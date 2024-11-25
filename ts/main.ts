@@ -3,8 +3,9 @@ namespace layout_ts {
 type MouseEventCallback = (ev : MouseEvent)=>Promise<void>;
 type EventCallback = (ev : Event)=>Promise<void>;
 
-export const bgColor = "#003000";
-export const fgColor = "white";
+export const bgColor = "white";
+export const fgColor = "black";// "#003000";
+
 
 export function bodyOnLoad(){
     i18n_ts.initI18n();
