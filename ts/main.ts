@@ -49,6 +49,8 @@ interface Attr {
     parent? : Block;
     obj? : any;
     name? : string;
+    position? : string;
+    margin? : string;
     color? : string;
     backgroundColor? : string;
     borderStyle? : string;
@@ -69,6 +71,8 @@ export abstract class UI {
     parent? : Block;
     obj? : any;
     name? : string;
+    position? : string;
+    margin? : string;
     color? : string;
     backgroundColor? : string;
     borderStyle? : string;
@@ -95,6 +99,14 @@ export abstract class UI {
 
         if(data.id != undefined){
             ele.id = data.id;
+        }
+
+        if(this.position != undefined){
+            ele.style.position = this.position;
+        }
+
+        if(this.margin != undefined){
+            ele.style.margin = this.margin;
         }
 
         if(this.borderWidth != undefined){
@@ -168,8 +180,10 @@ export abstract class UI {
 
         const html = this.html();
 
-        html.style.left = `${x}px`;
-        html.style.top  = `${y}px`;
+        if(this.position != "static"){
+            html.style.left = `${x}px`;
+            html.style.top  = `${y}px`;
+        }
     }
 
     setSize(width : number, height : number){
@@ -282,7 +296,9 @@ export class TextBox extends TextDiv {
     constructor(data : Attr & { text : string, fontSize? : string }){
         super(data);
         this.div.innerHTML = data.text;
-        this.div.style.position = "absolute";
+        if(this.position == undefined){
+            this.div.style.position = "absolute";
+        }
     }
 
     setText(text : string){
@@ -488,7 +504,9 @@ abstract class AbstractButton extends UI {
         super(data);
         this.value = data.value;
         this.button = document.createElement("button");
-        this.button.style.position = "absolute";
+        if(this.position == undefined){
+            this.button.style.position = "absolute";
+        }
         this.button.style.padding = "1px";
         this.button.style.color = fgColor;
 
@@ -500,16 +518,6 @@ abstract class AbstractButton extends UI {
             const img = document.createElement("img");
             img.src = data.url;
     
-            // if(data.width == undefined || data.height == undefined){
-            //     throw new MyError();
-            // }
-
-            // img.style.position = "absolute";
-            // img.style.left   = `${AbstractButton.imgMargin}px`;
-            // img.style.top    = `${AbstractButton.imgMargin}px`;
-
-            // img.style.width  = `${pixel(data.width)  - 2 * AbstractButton.imgMargin}px`;
-            // img.style.height = `${pixel(data.height) - 2 * AbstractButton.imgMargin}px`;
             img.style.width   = "100%";
             img.style.height  = "100%";
         
@@ -613,7 +621,9 @@ export class Block extends UI {
     constructor(data : Attr & { children : UI[] }){        
         super(data);
         this.div = document.createElement("div");
-        this.div.style.position = "absolute";
+        if(this.position == undefined){
+            this.div.style.position = "absolute";
+        }
 
         this.children = [];
         data.children.forEach(x => this.addChild(x));
