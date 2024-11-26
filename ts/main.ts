@@ -60,7 +60,6 @@ interface Attr {
     colspan? : number;
     width? : string;
     height? : string;
-    aspectRatio? : number;
 }
 
 export abstract class UI {
@@ -81,7 +80,6 @@ export abstract class UI {
     textAlign? : string;
     width? : string;
     height? : string;
-    aspectRatio? : number;
     colspan : number = 1;
 
     width_px  : number = NaN;
@@ -498,7 +496,8 @@ abstract class AbstractButton extends UI {
     static imgMargin = 2;
 
     value?  : string;
-    button : HTMLButtonElement;    
+    button : HTMLButtonElement;
+    img? : HTMLImageElement;
 
     constructor(data : Attr & { value? : string, text? : string, url? : string }){
         super(data);
@@ -515,22 +514,19 @@ abstract class AbstractButton extends UI {
         }
 
         if(data.url != undefined){
-            const img = document.createElement("img");
-            img.src = data.url;
+            this.img = document.createElement("img");
+            this.img.src = data.url;
     
-            img.style.width   = "100%";
-            img.style.height  = "100%";
+            this.img.style.width   = "100%";
+            this.img.style.height  = "100%";
         
-            this.button.append(img);    
+            this.button.append(this.img);    
         }
     }
 
-    // removeButton(){
-    //     if(this.parent == undefined){
-    //         throw new MyError();
-    //     }
-    //     this.parent.removeChild(this);
-    // }
+    setImgUrl(url : string){
+        this.img!.src = url;
+    }
 }
 
 export class Button extends AbstractButton {
@@ -898,15 +894,7 @@ export class Grid extends Block {
                 child_width = sum(widths.slice(col, col + child.colspan))
             }
 
-            let child_height : number;
-            if(child.aspectRatio == undefined){
-                child_height = heights[row];
-            }
-            else{
-                child_height = child.aspectRatio * child_width;
-            }
-
-            child.layout(child_x, child_y, child_width, child_height);
+            child.layout(child_x, child_y, child_width, heights[row]);
 
             if(col + child.colspan < widths.length){
 

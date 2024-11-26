@@ -117,12 +117,10 @@ export function makeTestUI(){
                                 }
                             })
                         ],
-                        aspectRatio : 1,
                     })
                     ,
                     $block({
                         children : [],
-                        aspectRatio : 1,
                     })
                     ,
                     $block({
