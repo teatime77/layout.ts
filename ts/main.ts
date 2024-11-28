@@ -3,15 +3,15 @@ namespace layout_ts {
 type MouseEventCallback = (ev : MouseEvent)=>Promise<void>;
 type EventCallback = (ev : Event)=>Promise<void>;
 
-export const bgColor = "white";
-export const fgColor = "black";// "#003000";
+export const fgColor = "white";
+export const bgColor = "#003000";
 
 
 export function bodyOnLoad(){
     i18n_ts.initI18n();
 
     const root = makeTestUI();
-    initLayout(root);
+    Layout.initLayout(root);
 }
 
 
@@ -82,10 +82,7 @@ export abstract class UI {
     height? : string;
     colspan : number = 1;
 
-    width_px  : number = NaN;
-    height_px : number = NaN;
-    x_px : number = NaN;
-    y_px : number = NaN;
+    minSize : Vec2 | undefined;
 
     constructor(data : Attr){   
         Object.assign(this, data);
@@ -147,6 +144,46 @@ export abstract class UI {
 
     abstract html() : HTMLElement;
 
+    getMinSize() : Vec2 {
+        if(this.minSize != undefined){
+            return this.minSize;
+        }
+
+        let width : number | undefined;
+        let height : number | undefined;
+
+        if(this.width != undefined && this.width.endsWith("px")){
+            width = pixel(this.width);
+        }
+
+        if(this.height != undefined && this.height.endsWith("px")){
+            height = pixel(this.height);
+        }
+
+        if(width == undefined || height == undefined){
+
+            const rect = this.html().getBoundingClientRect();
+            if(width == undefined){
+                width = rect.width;
+            }
+            if(height == undefined){
+                height = rect.height;
+            }
+        }
+
+        this.minSize = new Vec2(width, height);
+        return this.minSize;
+    }
+
+    getMinWidth() : number {
+        return this.getMinSize().x;
+    }
+
+
+    getMinHeight() : number {
+        return this.getMinSize().y;
+    }
+
     getWidth() : number {
         if(this.width != undefined){
             if(this.width.endsWith("px")){
@@ -170,12 +207,6 @@ export abstract class UI {
     }
 
     setXY(x : number, y : number){
-        if(x == -100){
-            console.log("");
-        }
-        this.x_px = x;
-        this.y_px = y;
-
         const html = this.html();
 
         if(this.position != "static"){
@@ -184,28 +215,24 @@ export abstract class UI {
         }
     }
 
-    setSize(width : number, height : number){
-        this.width_px  = width;
-        this.height_px = height;
-
+    setSize(size : Vec2){
+        if(size == undefined){
+            throw new MyError();
+        }
         const html = this.html();
 
         const padding = (this.padding != undefined ? pixel(this.padding) : 0);
 
-        html.style.width  = `${width  - padding * 2}px`;
-        html.style.height = `${height - padding * 2}px`;
+        html.style.width  = `${size.x  - padding * 2}px`;
+        html.style.height = `${size.y - padding * 2}px`;
     }
 
     selectUI(selected : boolean){
     }
 
-    layout(x : number, y : number, width : number, height : number){
+    layout(x : number, y : number, size : Vec2){
         this.setXY(x, y);
-        this.setSize(width, height);
-    }
-
-    updateLayout(){
-        this.layout(this.x_px, this.y_px, this.width_px, this.height_px);
+        this.setSize(size);
     }
 
     ratio() : number {
@@ -720,57 +747,76 @@ export class Flex extends Block {
         this.children.forEach(x => this.div.append(x.html()));
     }
 
-    layout(x : number, y : number, width : number, height : number){
-        const child_widths  = this.children.map(x => x.getWidth());
-        const child_heights = this.children.map(x => x.getHeight());
+    getMinSize() : Vec2 {
+        if(this.children.length == 0){
+            this.minSize = new Vec2(Flex.padding, Flex.padding);
+        }
+        else{
 
-        let width_auto  : number;
-        let height_auto : number;
+            const min_sizes = this.children.map(x => x.getMinSize());
+
+            let width : number | undefined;
+            let height : number | undefined;
+
+            if(this.width != undefined){
+                assert(this.width.endsWith("px"));
+                width = pixel(this.width);
+            }
+            else{
+                if(this.direction == "row"){
+                    width = sum( min_sizes.map(sz => sz.x) ) + (min_sizes.length - 1) * Flex.padding;
+                }
+                else if(this.direction == "column"){
+                    width  = Math.max(...min_sizes.map(sz => sz.x));
+                }
+            }
+
+            if(this.height != undefined){
+                assert(this.height.endsWith("px"));
+                height = pixel(this.height);
+            }
+            else{
+                if(this.direction == "row"){
+                    height = Math.max(...min_sizes.map(sz => sz.y));
+                }
+                else if(this.direction == "column"){
+                    height = sum( min_sizes.map(sz => sz.y) ) + (min_sizes.length - 1) * Flex.padding;
+                }
+            }
+    
+            if(width == undefined || height == undefined){
+                throw new MyError();
+            }   
+
+            this.minSize = new Vec2(width + 2 * Flex.padding, height + 2 * Flex.padding);
+        }
+
+        return this.minSize;
+    }
+
+    layout(x : number, y : number, size : Vec2){
+        super.layout(x, y, size);
+
         let child_x = Flex.padding;
         let child_y = Flex.padding;
         if(this.direction == "row"){
 
             for(const [idx, child] of this.children.entries()){
-                child.layout(child_x, child_y, child_widths[idx], child_heights[idx]);
+                child.layout(child_x, child_y, child.getMinSize());
 
-                child_x += child_widths[idx] + Flex.padding;
+                child_x += child.minSize!.x + Flex.padding;
             }
-
-            width_auto  = child_x;
-            height_auto = Math.max(...child_heights)+ 2 * Flex.padding;
         }
         else if(this.direction == "column"){
-            if(!isNaN(width)){
-                const max_width = Math.max(... child_widths);
-                child_x = 0.5 * (width - max_width);
-                if(child_x == -100){
-                    const child_widths_2  = this.children.map(x => x.getWidth());
-                    console.log("child_x == -100");
-                }
-                child_x = Math.max(0, child_x);
-            }
 
             for(const [idx, child] of this.children.entries()){
-                // msg(`flex y:${child_y} h:${child_heights[idx]} pad:${Flex.padding}`)
-                child.layout(child_x, child_y, child_widths[idx], child_heights[idx]);
+                child.layout(child_x, child_y, child.getMinSize());
 
-                child_y += child_heights[idx] + Flex.padding;
+                child_y += child.minSize!.y + Flex.padding;
             }
-
-            width_auto  = Math.max(...child_widths) + 2 * Flex.padding;
-            height_auto = child_y;
         }
         else{
             throw new MyError();
-        }
-
-        if(isNaN(width) || isNaN(height)){
-
-            super.layout(x, y, width_auto, height_auto);
-        }
-        else{
-
-            super.layout(x, y, width, height);
         }
     }
 }
@@ -815,10 +861,13 @@ export class PopupMenu extends UI {
 
     show(ev : MouseEvent){
         setTimeout(()=>{
-            this.flex.layout(0, 0, NaN, NaN);
+            this.flex.getAllUI().forEach(x => x.minSize = undefined);
 
-            this.dlg.style.width  = `${this.flex.width_px}px`;
-            this.dlg.style.height = `${this.flex.height_px}px`;
+            const size = this.flex.getMinSize();
+            this.flex.layout(0, 0, size);
+
+            this.dlg.style.width  = `${size.x}px`;
+            this.dlg.style.height = `${size.y}px`;
     
             this.dlg.style.marginLeft = `${ev.pageX}px`;
             this.dlg.style.marginTop  = `${ev.pageY}px`;
@@ -833,8 +882,8 @@ export class PopupMenu extends UI {
 }
 
 export class Grid extends Block {
-    columns : string[];
-    rows : string[];
+    columns? : string[];
+    rows? : string[];
 
     constructor(data : Attr & { columns?: string, rows? : string, children : UI[] }){        
         super(data);
@@ -842,80 +891,173 @@ export class Grid extends Block {
 
             this.columns = data.columns.split(" ");
         }
-        else{
-            this.columns = ["100%"];
-        }
 
         if(data.rows != undefined){
 
             this.rows = data.rows.split(" ");
         }
+    }
+
+    getRow(idx : number) : UI[] {
+        if(this.rows == undefined){
+            return this.children;
+        }
+        else if(this.columns == undefined){
+            return [ this.children[idx] ]
+        }
         else{
-            this.rows = ["100%"];
+            const num_cols = this.columns.length;
+            return this.children.slice(idx * num_cols, (idx + 1) * num_cols);
         }
     }
 
-    layout(x : number, y : number, width : number, height : number){
-        super.layout(x, y, width, height);
+    getRowHeight(idx : number) : number {
+        return Math.max(... this.getRow(idx).map(ui => ui.getMinHeight()));
+    }
+
+    getColumn(idx : number) : UI[]{
+        if(this.columns == undefined){
+            return this.children;
+        }
+        else if(this.rows == undefined){
+            return [ this.children[idx] ]
+        }
+        else{
+            const num_cols = this.columns.length;
+            return Array.from(this.children.entries()).filter(x => x[0] % num_cols == idx).map(x => x[1]);
+        }
+    }
+
+    getColumnWith(idx : number) : number {
+        return Math.max(... this.getColumn(idx).map(ui => ui.getMinWidth()));
+    }
+
+    getMinSize() : Vec2 {
+        let width : number;
+
+        const num_cols = (this.columns == undefined ? 1 : this.columns.length);
+
+        if(this.width != undefined){
+            assert(this.width.endsWith("px"));
+            width = pixel(this.width);
+        }
+        else{
+
+            if(this.columns == undefined){
+
+                width = this.getColumnWith(0);
+            }
+            else{
+
+                const fixed_width = sum(this.columns.filter(col => col.endsWith("px")).map(col => pixel(col)));
+
+                let remaining_width = 0;
+                for(const [idx, size] of this.columns.entries()){
+                    if(! size.endsWith("px")){
+
+                        const col_width = Math.max(... this.getColumn(idx).map(ui => ui.getMinWidth()) );
+                        remaining_width = Math.max(col_width / ratio(size));
+                    }
+                }
+
+                width = fixed_width + remaining_width;
+            }
+        }
+
+        let height : number;
+
+        if(this.height != undefined){
+            assert(this.height.endsWith("px"));
+            height = pixel(this.height);
+        }
+        else{
+
+            const num_rows = Math.ceil(this.children.length / num_cols);
+
+            if(this.rows == undefined){
+                height = sum( range(num_rows).map(i => this.getRowHeight(i) ) ) ;
+            }
+            else{
+
+                const fixed_height = sum(this.rows.filter(row => row.endsWith("px")).map(row => pixel(row)));
+
+                let remaining_height = 0;
+                for(const [idx, size] of this.rows.entries()){
+                    if(! size.endsWith("px")){
+
+                        const row_height = Math.max(... this.getRow(idx).map(ui => ui.getMinHeight()) );
+                        remaining_height = Math.max(row_height / ratio(size));
+                    }
+                }
+
+                height = fixed_height + remaining_height;
+            }
+        }
+
+        this.minSize = new Vec2(width, height);
+        return this.minSize;
+    }
+
+    layout(x : number, y : number, size : Vec2){
+        super.layout(x, y, size);
 
         let widths : number[];
         let heights : number[];
 
-        const fixed_width = sum(this.columns.filter(x => x.endsWith("px")).map(x => pixel(x)));
-        const remaining_width = width - fixed_width;
-        widths = this.columns.map(x => pixel(x, remaining_width));
+        let num_cols;
+        if(this.columns == undefined){
+            num_cols = 1;
+            widths = [ size.x ];
+        }
+        else{
+            num_cols = this.columns.length;
 
-        if(this.rows[0] == "auto"){
-            const ncol = this.columns.length;
-            heights = [];
-            for(const idx of range(Math.ceil(this.children.length / ncol))){
-                const base = idx * ncol;
-                const max_height = Math.max(... this.children.slice(base, base + ncol).map(x => pixel(x.height!)));
-                heights.push(max_height);
-            }
+            const fixed_width = sum(this.columns.filter(x => x.endsWith("px")).map(x => pixel(x)));
+            const remaining_width = size.x - fixed_width;
+            widths = this.columns.map(x => pixel(x, remaining_width));
+        }
+
+        const num_rows = Math.ceil(this.children.length / num_cols);
+
+        if(this.rows == undefined){
+            heights = range(num_rows).map(i => this.getRowHeight(i) );
         }
         else{
 
             const fixed_height = sum(this.rows.filter(x => x.endsWith("px")).map(x => pixel(x)));
-            const remaining_height = height - fixed_height;
+            const remaining_height = size.y - fixed_height;
             heights = this.rows.map(x => pixel(x, remaining_height));
         }
 
         let row = 0;
-        let col = 0;
+        let col_idx = 0;
         let child_x = 0;
         let child_y = 0;
         for(const child of this.children){
             let child_width : number;
             if(child.colspan == 1){
-                child_width = widths[col];
+                child_width = widths[col_idx];
             }
             else{
-                child_width = sum(widths.slice(col, col + child.colspan))
+                child_width = sum(widths.slice(col_idx, col_idx + child.colspan))
             }
 
-            child.layout(child_x, child_y, child_width, heights[row]);
+            child.layout(child_x, child_y, new Vec2(child_width, heights[row]) );
 
-            if(col + child.colspan < widths.length){
+            if(col_idx + child.colspan < widths.length){
 
-                child_x += widths[col];
-                col += child.colspan;
+                child_x += widths[col_idx];
+                col_idx += child.colspan;
             }
             else{
                 child_x   = 0;
                 child_y += heights[row];
 
-                col = 0;
+                col_idx = 0;
                 row++;
             }
         }
     }  
-    
-    resize(){
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        this.layout(0, 0, width, height);
-    }
 }
 
 export class Dialog extends UI {
@@ -975,18 +1117,18 @@ export class Dialog extends UI {
     }
 
     setXY(x : number, y : number){
-        this.x_px = x;
-        this.y_px = y;
-
         this.dlg.style.marginLeft = `${x}px`;
         this.dlg.style.marginTop  = `${y}px`;
     }
 
     showStyle(ev : MouseEvent){
+        this.grid.getAllUI().forEach(x => x.minSize = undefined);
+
         const width = pixel(this.width!);
         const height = pixel(this.height!);
 
-        this.grid.layout(0, 0, width, height);
+        const size = this.grid.getMinSize();
+        this.grid.layout(0, 0, size);
 
         msg(`dlg: ${width} ${height} ${ev.pageX} ${ev.pageY}`)
         this.dlg.style.width  = `${width}px`;
@@ -1067,7 +1209,7 @@ export class Log extends UI {
 
             Log.init();
 
-            Log.one.dlg.style.marginTop = `${(window.innerHeight - Log.one.height_px) - 20}px`;
+            Log.one.dlg.style.marginTop = `${0.8 * window.innerHeight}px`;
             Log.one.dlg.show();
         }
     }
@@ -1078,13 +1220,13 @@ export class Log extends UI {
             throw new MyError();
         }
 
-        this.width_px  = pixel(data.width);
-        this.height_px = pixel(data.height);
+        const width_px  = pixel(data.width);
+        const height_px = pixel(data.height);
 
         this.dlg = document.createElement("dialog");
         this.dlg.style.position = "fixed";
-        this.dlg.style.width  = `${this.width_px}px`;
-        this.dlg.style.height = `${this.height_px}px`;
+        this.dlg.style.width  = `${width_px}px`;
+        this.dlg.style.height = `${height_px}px`;
         this.dlg.style.padding = "0";
         this.dlg.style.marginRight  = "0";
         this.dlg.style.zIndex = "1";
@@ -1125,6 +1267,30 @@ export class Log extends UI {
 
             this.count = 1;
         }
+    }
+}
+
+export class Layout {
+    static root : Grid;
+
+    static initLayout(root : Grid){
+        Layout.root = root;
+
+        document.body.append(root.div);
+        Layout.updateRootLayout();
+    
+        window.addEventListener("resize", (ev : UIEvent)=>{
+            Layout.updateRootLayout();
+        });
+    }
+
+    static updateRootLayout(){
+        Layout.root.getAllUI().forEach(x => x.minSize = undefined);
+        const size = Layout.root.getMinSize();
+        const x = Math.max(0, 0.5 * (window.innerWidth  - size.x));
+        const y = Math.max(0, 0.5 * (window.innerHeight - size.y));
+
+        Layout.root.layout(x, y, size);
     }
 }
 
@@ -1202,13 +1368,6 @@ export function $popup(data : Attr & { direction?: string, children : UI[], clic
 
 export function $dialog(data : Attr & { content : UI, okClick? : MouseEventCallback }) : Dialog {
     return new Dialog(data).setStyle(data) as Dialog;
-}
-
-export function initLayout(root : Grid){
-    document.body.append(root.div);
-    root.resize();
-
-    window.addEventListener("resize", root.resize.bind(root));
 }
 
 }
