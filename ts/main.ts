@@ -748,48 +748,52 @@ export class Flex extends Block {
     }
 
     getMinSize() : Vec2 {
-        if(this.children.length == 0){
-            this.minSize = new Vec2(Flex.padding, Flex.padding);
+        let min_sizes : Vec2[] = [];
+
+        if(this.children.length != 0){
+            min_sizes = this.children.map(x => x.getMinSize());
+        }
+
+        let width : number | undefined;
+        let height : number | undefined;
+
+        if(this.width != undefined){
+            assert(this.width.endsWith("px"));
+            width = pixel(this.width);
         }
         else{
-
-            const min_sizes = this.children.map(x => x.getMinSize());
-
-            let width : number | undefined;
-            let height : number | undefined;
-
-            if(this.width != undefined){
-                assert(this.width.endsWith("px"));
-                width = pixel(this.width);
+            if(this.children.length == 0){
+                width = 0;
             }
-            else{
-                if(this.direction == "row"){
-                    width = sum( min_sizes.map(sz => sz.x) ) + (min_sizes.length - 1) * Flex.padding;
-                }
-                else if(this.direction == "column"){
-                    width  = Math.max(...min_sizes.map(sz => sz.x));
-                }
+            else if(this.direction == "row"){
+                width = sum( min_sizes.map(sz => sz.x) ) + (min_sizes.length - 1) * Flex.padding;
             }
-
-            if(this.height != undefined){
-                assert(this.height.endsWith("px"));
-                height = pixel(this.height);
+            else if(this.direction == "column"){
+                width  = Math.max(...min_sizes.map(sz => sz.x));
             }
-            else{
-                if(this.direction == "row"){
-                    height = Math.max(...min_sizes.map(sz => sz.y));
-                }
-                else if(this.direction == "column"){
-                    height = sum( min_sizes.map(sz => sz.y) ) + (min_sizes.length - 1) * Flex.padding;
-                }
-            }
-    
-            if(width == undefined || height == undefined){
-                throw new MyError();
-            }   
-
-            this.minSize = new Vec2(width + 2 * Flex.padding, height + 2 * Flex.padding);
         }
+
+        if(this.height != undefined){
+            assert(this.height.endsWith("px"));
+            height = pixel(this.height);
+        }
+        else{
+            if(this.children.length == 0){
+                height = 0;
+            }
+            else if(this.direction == "row"){
+                height = Math.max(...min_sizes.map(sz => sz.y));
+            }
+            else if(this.direction == "column"){
+                height = sum( min_sizes.map(sz => sz.y) ) + (min_sizes.length - 1) * Flex.padding;
+            }
+        }
+
+        if(width == undefined || height == undefined){
+            throw new MyError();
+        }   
+
+        this.minSize = new Vec2(width + 2 * Flex.padding, height + 2 * Flex.padding);
 
         return this.minSize;
     }
@@ -1063,52 +1067,16 @@ export class Grid extends Block {
 export class Dialog extends UI {
     dlg : HTMLDialogElement;
     content : UI;
-    grid : Grid;
-    okClick? : MouseEventCallback;
 
-    constructor(data : Attr & { content : UI, okClick? : MouseEventCallback }){
+    constructor(data : Attr & { content : UI }){
         super(data);
-        if(data.width == undefined || data.height == undefined){
-            throw new MyError();
-        }
         this.content = data.content;
-        this.okClick = data.okClick;
 
         this.dlg = document.createElement("dialog");
         this.dlg.style.position = "fixed";
         this.dlg.style.zIndex  = "1";
 
-        const ok_button = $button({
-            text : "OK",
-            click : async (ev:MouseEvent)=>{
-                if(this.okClick != undefined){
-                    this.okClick(ev);
-                }
-                this.dlg.close();
-            }
-        });
-
-        const cancel_button = $button({
-            text : "Cancel",
-            click : async (ev:MouseEvent)=>{
-                this.dlg.close();
-            }
-        });
-
-        this.grid = $grid({
-            rows : "100% 50px",
-            children : [
-                this.content,
-                $flex({
-                    children : [
-                        ok_button,
-                        cancel_button        
-                    ]
-                })
-            ]
-        });
-
-        this.dlg.append(this.grid.div);
+        this.dlg.append(this.content.html());
         document.body.append(this.dlg);
     }
 
@@ -1122,17 +1090,12 @@ export class Dialog extends UI {
     }
 
     showStyle(ev : MouseEvent){
-        this.grid.getAllUI().forEach(x => x.minSize = undefined);
+        const size = this.content.getMinSize();
+        this.content.layout(0, 0, size);
 
-        const width = pixel(this.width!);
-        const height = pixel(this.height!);
-
-        const size = this.grid.getMinSize();
-        this.grid.layout(0, 0, size);
-
-        msg(`dlg: ${width} ${height} ${ev.pageX} ${ev.pageY}`)
-        this.dlg.style.width  = `${width}px`;
-        this.dlg.style.height = `${height}px`;
+        msg(`dlg: ${size.x} ${size.y} ${ev.pageX} ${ev.pageY}`)
+        this.dlg.style.width  = `${size.x + 10}px`;
+        this.dlg.style.height = `${size.y + 10}px`;
 
         this.dlg.style.marginLeft = `${ev.pageX}px`;
         this.dlg.style.marginTop  = `${ev.pageY}px`;
@@ -1146,20 +1109,6 @@ export class Dialog extends UI {
         this.dlg.close();
     }
 
-    show(ev : MouseEvent){
-        this.dlg.show();
-        this.showStyle(ev);
-    }
-
-    toggleShow(ev : MouseEvent){
-        if(this.dlg.open){
-            this.dlg.close();
-        }
-        else{
-            this.show(ev);
-        }
-    }
-
     showModal(ev : MouseEvent){
         setTimeout(()=>{
             // getBoundingClientRect can be used after showModal
@@ -1167,15 +1116,6 @@ export class Dialog extends UI {
             this.showStyle(ev);
         })
         this.dlg.showModal();
-    }
-
-    getAllUI() : UI[] {
-        let uis : UI[] = [ this ];
-        return uis.concat(this.grid.getAllUI());
-    }
-
-    getUIById(id : string) : UI | undefined {
-        return this.getAllUI().find(x => x.id == id);
     }
 }
 
