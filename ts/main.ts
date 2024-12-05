@@ -44,7 +44,7 @@ function pixel(length : string,  remaining_length? : number) : number {
 }
 
 
-interface Attr {
+export interface Attr {
     id? : string;
     parent? : Block;
     obj? : any;
@@ -507,11 +507,14 @@ export class TextArea extends UI {
 }
 
 export class Img extends UI {
+    imgUrl : string;
     img : HTMLImageElement;
 
-    constructor(data : Attr){        
+    constructor(data : Attr & { imgUrl : string }){        
         super(data);
+        this.imgUrl = data.imgUrl;
         this.img = document.createElement("img");
+        this.img.src = this.imgUrl;
     }
 
     html() : HTMLElement {
@@ -525,8 +528,9 @@ abstract class AbstractButton extends UI {
     value?  : string;
     button : HTMLButtonElement;
     img? : HTMLImageElement;
+    fontSize? : string;
 
-    constructor(data : Attr & { value? : string, text? : string, url? : string }){
+    constructor(data : Attr & { value? : string, text? : string, fontSize? : string, url? : string }){
         super(data);
         this.value = data.value;
         this.button = document.createElement("button");
@@ -540,6 +544,10 @@ abstract class AbstractButton extends UI {
             this.button.innerText = data.text;
         }
 
+        if(data.fontSize != undefined){
+            this.fontSize = data.fontSize;            
+        }
+
         if(data.url != undefined){
             this.img = document.createElement("img");
             this.img.src = data.url;
@@ -551,6 +559,18 @@ abstract class AbstractButton extends UI {
         }
     }
 
+    setStyle(data : Attr & { fontSize? : string }) : UI {
+        super.setStyle(data);
+
+        const ele = this.html();
+
+        if(this.fontSize != undefined){
+            ele.style.fontSize = this.fontSize;
+        }
+
+        return this;
+    }
+
     setImgUrl(url : string){
         this.img!.src = url;
     }
@@ -559,7 +579,7 @@ abstract class AbstractButton extends UI {
 export class Button extends AbstractButton {
     click? : MouseEventCallback;
 
-    constructor(data : Attr & { value? : string, text? : string, url? : string, click? : MouseEventCallback }){        
+    constructor(data : Attr & { value? : string, text? : string, fontSize? : string, url? : string, click? : MouseEventCallback }){        
         super(data);
         this.click = data.click;
 
@@ -590,7 +610,7 @@ export class Anchor extends UI {
 }
 
 export class RadioButton extends AbstractButton {
-    constructor(data : Attr & { value : string, title : string, text? : string, url? : string }){
+    constructor(data : Attr & { value : string, title : string, text? : string, fontSize? : string, url? : string }){
         super(data);
 
         this.button.value = data.value;
@@ -889,6 +909,9 @@ export class Grid extends Block {
     columns? : string[];
     rows? : string[];
 
+    widths!   : number[];
+    heights! : number[]
+
     constructor(data : Attr & { columns?: string, rows? : string, children : UI[] }){        
         super(data);
         if(data.columns != undefined){
@@ -979,22 +1002,31 @@ export class Grid extends Block {
             const num_rows = Math.ceil(this.children.length / num_cols);
 
             if(this.rows == undefined){
-                height = sum( range(num_rows).map(i => this.getRowHeight(i) ) ) ;
+                this.heights = range(num_rows).map(i => this.getRowHeight(i) );
+                height = sum( this.heights ) ;
             }
             else{
 
-                const fixed_height = sum(this.rows.filter(row => row.endsWith("px")).map(row => pixel(row)));
+                this.heights = range(this.rows.length).map(x => 0);
+                for(const [idx, row] of this.rows.entries()){
+                    if(row.endsWith("px")){
+                        this.heights[idx] = pixel(row);
+                    }
+                    else if(row == "auto"){
+                        this.heights[idx] = this.getRowHeight(idx);
+                    }
+                }
 
                 let remaining_height = 0;
                 for(const [idx, size] of this.rows.entries()){
-                    if(! size.endsWith("px")){
+                    if(size.endsWith("%")){
 
                         const row_height = Math.max(... this.getRow(idx).map(ui => ui.getMinHeight()) );
                         remaining_height = Math.max(row_height / ratio(size));
                     }
                 }
 
-                height = fixed_height + remaining_height;
+                height = sum(this.heights) + remaining_height;
             }
         }
 
@@ -1006,7 +1038,6 @@ export class Grid extends Block {
         super.layout(x, y, size);
 
         let widths : number[];
-        let heights : number[];
 
         let num_cols;
         if(this.columns == undefined){
@@ -1024,13 +1055,18 @@ export class Grid extends Block {
         const num_rows = Math.ceil(this.children.length / num_cols);
 
         if(this.rows == undefined){
-            heights = range(num_rows).map(i => this.getRowHeight(i) );
+            this.heights = range(num_rows).map(i => this.getRowHeight(i) );
         }
         else{
+            
+            const remaining_height = size.y - sum(this.heights);
+            for(const [idx, row] of this.rows.entries()){
 
-            const fixed_height = sum(this.rows.filter(x => x.endsWith("px")).map(x => pixel(x)));
-            const remaining_height = size.y - fixed_height;
-            heights = this.rows.map(x => pixel(x, remaining_height));
+                if(row.endsWith("%")){
+
+                    this.heights[idx] = pixel(row, remaining_height);
+                }
+            }
         }
 
         let row = 0;
@@ -1046,7 +1082,7 @@ export class Grid extends Block {
                 child_width = sum(widths.slice(col_idx, col_idx + child.colspan))
             }
 
-            child.layout(child_x, child_y, new Vec2(child_width, heights[row]) );
+            child.layout(child_x, child_y, new Vec2(child_width, this.heights[row]) );
 
             if(col_idx + child.colspan < widths.length){
 
@@ -1055,7 +1091,7 @@ export class Grid extends Block {
             }
             else{
                 child_x   = 0;
-                child_y += heights[row];
+                child_y += this.heights[row];
 
                 col_idx = 0;
                 row++;
@@ -1270,11 +1306,11 @@ export function $textarea(data : Attr & { value? : string, cols : number, rows :
     return new TextArea(data).setStyle(data) as TextArea;
 }
 
-export function $img(data : Attr) : Img {
+export function $img(data : Attr & { imgUrl : string }) : Img {
     return new Img(data).setStyle(data) as Img;
 }
 
-export function $button(data : Attr & { value? : string, text? : string, url? : string, click? : MouseEventCallback }) : Button {
+export function $button(data : Attr & { value? : string, text? : string, fontSize? : string, url? : string, click? : MouseEventCallback }) : Button {
     return new Button(data).setStyle(data) as Button;
 }
 
@@ -1282,7 +1318,7 @@ export function $anchor(data : Attr & { text? : string, url? : string }) : Ancho
     return new Anchor(data).setStyle(data) as Anchor;
 }
 
-export function $radio(data : Attr & { value : string, title : string, text? : string, url? : string }) : RadioButton {
+export function $radio(data : Attr & { value : string, title : string, text? : string, fontSize? : string, url? : string }) : RadioButton {
     return new RadioButton(data).setStyle(data) as RadioButton;
 }
 
@@ -1308,6 +1344,10 @@ export function $popup(data : Attr & { direction?: string, children : UI[], clic
 
 export function $dialog(data : Attr & { content : UI, okClick? : MouseEventCallback }) : Dialog {
     return new Dialog(data).setStyle(data) as Dialog;
+}
+
+export function $imgdiv(data : Attr & { uploadImgFile : (file : File)=>Promise<string> }) : ImgDiv {
+    return new ImgDiv(data).setStyle(data) as ImgDiv;
 }
 
 }
