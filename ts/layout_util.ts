@@ -159,4 +159,31 @@ export function getPhysicalSize() {
     return { width_cm, height_cm };
 }
 
+
+export function setImgFile(img : HTMLImageElement, file : File){
+    const reader = new FileReader();
+    
+    reader.addEventListener("load", (ev : ProgressEvent<FileReader>)=>{
+        if(ev.target != null){
+
+            if(typeof ev.target.result == "string"){
+
+                img.src = ev.target.result;
+            }
+            else{
+
+                throw new MyError(`load img error: ${file.name} result:${typeof ev.target.result}`);
+            }
+        }
+        else{
+
+            throw new MyError(`load img error: ${file.name}`);
+        }
+    });
+
+    reader.readAsDataURL(file);
+
+}
+
+
 }

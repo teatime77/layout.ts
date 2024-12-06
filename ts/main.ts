@@ -60,6 +60,7 @@ export interface Attr {
     colspan? : number;
     width? : string;
     height? : string;
+    disabled? : boolean;
 }
 
 export abstract class UI {
@@ -478,7 +479,7 @@ export class TextArea extends UI {
     textArea : HTMLTextAreaElement;
     change? : EventCallback;
 
-    constructor(data : Attr & { value? : string, cols : number, rows : number, change? : EventCallback }){
+    constructor(data : Attr & { value? : string, cols : number, rows : number, placeholder? : string, change? : EventCallback }){
         super(data);
         this.change = data.change;
         this.textArea = document.createElement("textarea");
@@ -489,6 +490,10 @@ export class TextArea extends UI {
         this.textArea.cols = data.cols;
         this.textArea.rows = data.rows;
         this.textArea.style.color = fgColor;
+
+        if(data.placeholder != undefined){
+            this.textArea.placeholder = data.placeholder;
+        }
 
         this.textArea.addEventListener("input", async (ev : Event)=>{
             if(this.change != undefined){
@@ -504,17 +509,28 @@ export class TextArea extends UI {
     getValue() : string {
         return this.textArea.value;
     }
+
+    setValue(text : string){
+        this.textArea.value = text;
+    }
 }
 
 export class Img extends UI {
     imgUrl : string;
     img : HTMLImageElement;
 
-    constructor(data : Attr & { imgUrl : string }){        
+    constructor(data : Attr & { imgUrl : string, file? : File }){
         super(data);
         this.imgUrl = data.imgUrl;
         this.img = document.createElement("img");
-        this.img.src = this.imgUrl;
+        if(data.file != undefined){
+
+            setImgFile(this.img, data.file);
+        }
+        else{
+
+            this.img.src = this.imgUrl;
+        }
     }
 
     html() : HTMLElement {
@@ -539,6 +555,10 @@ abstract class AbstractButton extends UI {
         }
         this.button.style.padding = "1px";
         this.button.style.color = fgColor;
+
+        if(data.disabled != undefined && data.disabled){
+            this.button.disabled = true;
+        }
 
         if(data.text != undefined){
             this.button.innerText = data.text;
@@ -738,6 +758,10 @@ export class Block extends UI {
 
     getElementById(id : string) : HTMLElement | undefined {
         return this.getAllHtml().find(x => x.id == id);
+    }
+
+    $(id : string){
+        return this.getUIById(id);
     }
 
     getUIById(id : string) : UI | undefined {
@@ -1098,6 +1122,16 @@ export class Grid extends Block {
             }
         }
     }  
+
+
+    updateRootLayout(){
+        this.getAllUI().forEach(x => x.minSize = undefined);
+        const size = this.getMinSize();
+        const x = Math.max(0, 0.5 * (window.innerWidth  - size.x));
+        const y = Math.max(0, 0.5 * (window.innerHeight - size.y));
+
+        this.layout(x, y, size);
+    }
 }
 
 export class Dialog extends UI {
@@ -1253,20 +1287,11 @@ export class Layout {
         Layout.root = root;
 
         document.body.append(root.div);
-        Layout.updateRootLayout();
+        Layout.root.updateRootLayout();
     
         window.addEventListener("resize", (ev : UIEvent)=>{
-            Layout.updateRootLayout();
+            Layout.root.updateRootLayout();
         });
-    }
-
-    static updateRootLayout(){
-        Layout.root.getAllUI().forEach(x => x.minSize = undefined);
-        const size = Layout.root.getMinSize();
-        const x = Math.max(0, 0.5 * (window.innerWidth  - size.x));
-        const y = Math.max(0, 0.5 * (window.innerHeight - size.y));
-
-        Layout.root.layout(x, y, size);
     }
 }
 
@@ -1302,11 +1327,11 @@ export function $checkbox(data : Attr & { text : string, change? : EventCallback
     return new CheckBox(data).setStyle(data) as CheckBox;
 }
 
-export function $textarea(data : Attr & { value? : string, cols : number, rows : number, change? : EventCallback }) : TextArea {
+export function $textarea(data : Attr & { value? : string, cols : number, rows : number, placeholder? : string, change? : EventCallback }) : TextArea {
     return new TextArea(data).setStyle(data) as TextArea;
 }
 
-export function $img(data : Attr & { imgUrl : string }) : Img {
+export function $img(data : Attr & { imgUrl : string, file? : File }) : Img {
     return new Img(data).setStyle(data) as Img;
 }
 

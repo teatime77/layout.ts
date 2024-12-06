@@ -59,26 +59,7 @@ export class ImgDiv extends UI {
 
                 if(file.type == "image/png" || file.type == "image/jpeg"){
 
-                    const reader = new FileReader();
-                    reader.addEventListener("load", (ev : ProgressEvent<FileReader>)=>{
-                        if(ev.target != null){
-
-                            if(typeof ev.target.result == "string"){
-
-                                this.img.src = ev.target.result;
-                            }
-                            else{
-
-                                throw new MyError(`load img error: ${file.name} result:${typeof ev.target.result}`);
-                            }
-                        }
-                        else{
-
-                            throw new MyError(`load img error: ${file.name}`);
-                        }
-                    });
-
-                    reader.readAsDataURL(file);
+                    setImgFile(this.img, file);
     
                     this.imgUrl = await this.uploadImgFile(file);
                 }
@@ -91,6 +72,11 @@ export class ImgDiv extends UI {
 
     html(): HTMLElement {
         return this.div;
+    }
+
+    clearImg(){
+        this.img.src = "";
+        this.imgUrl  = "";
     }
 }
 
