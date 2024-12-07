@@ -74,6 +74,11 @@ export class ImgDiv extends UI {
         return this.div;
     }
 
+    setImgUrl(url : string){
+        this.img.src = url;
+        this.imgUrl  = url;
+    }
+
     clearImg(){
         this.img.src = "";
         this.imgUrl  = "";

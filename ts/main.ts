@@ -518,8 +518,9 @@ export class TextArea extends UI {
 export class Img extends UI {
     imgUrl : string;
     img : HTMLImageElement;
+    click? : MouseEventCallback;
 
-    constructor(data : Attr & { imgUrl : string, file? : File }){
+    constructor(data : Attr & { imgUrl : string, file? : File, click? : MouseEventCallback }){
         super(data);
         this.imgUrl = data.imgUrl;
         this.img = document.createElement("img");
@@ -530,6 +531,16 @@ export class Img extends UI {
         else{
 
             this.img.src = this.imgUrl;
+        }
+
+        if(data.click != undefined){
+            this.click = data.click;
+
+            this.img.addEventListener("click", async (ev:MouseEvent)=>{
+                if(this.click != undefined){
+                    await this.click(ev);
+                }
+            });
         }
     }
 
@@ -971,6 +982,7 @@ export class Grid extends Block {
             return this.children;
         }
         else if(this.rows == undefined){
+            assert(0 <= idx && idx < this.children.length);
             return [ this.children[idx] ]
         }
         else{
@@ -1331,7 +1343,7 @@ export function $textarea(data : Attr & { value? : string, cols : number, rows :
     return new TextArea(data).setStyle(data) as TextArea;
 }
 
-export function $img(data : Attr & { imgUrl : string, file? : File }) : Img {
+export function $img(data : Attr & { imgUrl : string, file? : File, click? : MouseEventCallback }) : Img {
     return new Img(data).setStyle(data) as Img;
 }
 
