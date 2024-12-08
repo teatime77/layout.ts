@@ -329,9 +329,6 @@ export class TextBox extends TextDiv {
     constructor(data : Attr & { text : string, fontSize? : string }){
         super(data);
         this.div.innerHTML = data.text;
-        if(this.position == undefined){
-            this.div.style.position = "absolute";
-        }
     }
 
     setText(text : string){
@@ -504,10 +501,6 @@ export class TextArea extends UI {
 
         this.textArea.style.color = fgColor;
 
-        if(this.position == undefined){
-            this.textArea.style.position = "absolute";
-        }
-
         if(data.placeholder != undefined){
             this.textArea.placeholder = data.placeholder;
         }
@@ -578,9 +571,6 @@ abstract class AbstractButton extends UI {
         super(data);
         this.value = data.value;
         this.button = document.createElement("button");
-        if(this.position == undefined){
-            this.button.style.position = "absolute";
-        }
         this.button.style.padding = "1px";
         this.button.style.color = fgColor;
 
@@ -712,9 +702,6 @@ export class Block extends UI {
     constructor(data : Attr & { children : UI[] }){        
         super(data);
         this.div = document.createElement("div");
-        if(this.position == undefined){
-            this.div.style.position = "absolute";
-        }
 
         this.children = [];
         data.children.forEach(x => this.addChild(x));
