@@ -6,6 +6,7 @@ type EventCallback = (ev : Event)=>Promise<void>;
 export const fgColor = "white";
 export const bgColor = "#003000";
 
+const AppMode = i18n_ts.AppMode;
 
 export function bodyOnLoad(){
     i18n_ts.initI18n();
@@ -99,6 +100,9 @@ export abstract class UI {
 
         if(this.position != undefined){
             ele.style.position = this.position;
+        }
+        else if(!(ele instanceof Dialog) ){
+            ele.style.position = "absolute";
         }
 
         if(this.margin != undefined){
@@ -231,7 +235,10 @@ export abstract class UI {
     selectUI(selected : boolean){
     }
 
-    layout(x : number, y : number, size : Vec2){
+    layout(x : number, y : number, size : Vec2, nest : number){
+        if(i18n_ts.appMode == AppMode.lesson){            
+            msg(`${" ".repeat(4 * nest)} id:${this.constructor.name} x:${x.toFixed()} y:${y.toFixed()} position:${this.position} ${this.html().style.position}`);
+        }
         this.setXY(x, y);
         this.setSize(size);
     }
@@ -479,7 +486,7 @@ export class TextArea extends UI {
     textArea : HTMLTextAreaElement;
     change? : EventCallback;
 
-    constructor(data : Attr & { value? : string, cols : number, rows : number, placeholder? : string, change? : EventCallback }){
+    constructor(data : Attr & { value? : string, cols? : number, rows? : number, placeholder? : string, change? : EventCallback }){
         super(data);
         this.change = data.change;
         this.textArea = document.createElement("textarea");
@@ -487,9 +494,19 @@ export class TextArea extends UI {
             this.textArea.value = data.value;
         }
 
-        this.textArea.cols = data.cols;
-        this.textArea.rows = data.rows;
+        if(data.cols != undefined){
+            this.textArea.cols = data.cols;
+        }
+
+        if(data.rows != undefined){
+            this.textArea.rows = data.rows;
+        }
+
         this.textArea.style.color = fgColor;
+
+        if(this.position == undefined){
+            this.textArea.style.position = "absolute";
+        }
 
         if(data.placeholder != undefined){
             this.textArea.placeholder = data.placeholder;
@@ -853,15 +870,15 @@ export class Flex extends Block {
         return this.minSize;
     }
 
-    layout(x : number, y : number, size : Vec2){
-        super.layout(x, y, size);
+    layout(x : number, y : number, size : Vec2, nest : number){
+        super.layout(x, y, size, nest);
 
         let child_x = Flex.padding;
         let child_y = Flex.padding;
         if(this.direction == "row"){
 
             for(const [idx, child] of this.children.entries()){
-                child.layout(child_x, child_y, child.getMinSize());
+                child.layout(child_x, child_y, child.getMinSize(), nest + 1);
 
                 child_x += child.minSize!.x + Flex.padding;
             }
@@ -869,7 +886,7 @@ export class Flex extends Block {
         else if(this.direction == "column"){
 
             for(const [idx, child] of this.children.entries()){
-                child.layout(child_x, child_y, child.getMinSize());
+                child.layout(child_x, child_y, child.getMinSize(), nest + 1);
 
                 child_y += child.minSize!.y + Flex.padding;
             }
@@ -923,7 +940,7 @@ export class PopupMenu extends UI {
             this.flex.getAllUI().forEach(x => x.minSize = undefined);
 
             const size = this.flex.getMinSize();
-            this.flex.layout(0, 0, size);
+            this.flex.layout(0, 0, size, 0);
 
             this.dlg.style.width  = `${size.x}px`;
             this.dlg.style.height = `${size.y}px`;
@@ -944,8 +961,8 @@ export class Grid extends Block {
     columns? : string[];
     rows? : string[];
 
-    widths!   : number[];
-    heights! : number[]
+    // widths!   : number[];
+    heights! : number[];
 
     constructor(data : Attr & { columns?: string, rows? : string, children : UI[] }){        
         super(data);
@@ -995,6 +1012,20 @@ export class Grid extends Block {
         return Math.max(... this.getColumn(idx).map(ui => ui.getMinWidth()));
     }
 
+    calcHeights(){
+        const heights = range(this.rows!.length).map(x => 0);
+        for(const [idx, row] of this.rows!.entries()){
+            if(row.endsWith("px")){
+                heights[idx] = pixel(row);
+            }
+            else if(row == "auto"){
+                heights[idx] = this.getRowHeight(idx);
+            }
+        }
+
+        return heights;
+    }
+
     getMinSize() : Vec2 {
         let width : number;
 
@@ -1029,13 +1060,16 @@ export class Grid extends Block {
 
         let height : number;
 
+        const num_rows = Math.ceil(this.children.length / num_cols);
+
         if(this.height != undefined){
+            assert(num_rows == 1);
             assert(this.height.endsWith("px"));
             height = pixel(this.height);
+            this.heights = [ height ];
         }
         else{
 
-            const num_rows = Math.ceil(this.children.length / num_cols);
 
             if(this.rows == undefined){
                 this.heights = range(num_rows).map(i => this.getRowHeight(i) );
@@ -1043,15 +1077,7 @@ export class Grid extends Block {
             }
             else{
 
-                this.heights = range(this.rows.length).map(x => 0);
-                for(const [idx, row] of this.rows.entries()){
-                    if(row.endsWith("px")){
-                        this.heights[idx] = pixel(row);
-                    }
-                    else if(row == "auto"){
-                        this.heights[idx] = this.getRowHeight(idx);
-                    }
-                }
+                this.heights = this.calcHeights();
 
                 let remaining_height = 0;
                 for(const [idx, size] of this.rows.entries()){
@@ -1070,8 +1096,8 @@ export class Grid extends Block {
         return this.minSize;
     }
 
-    layout(x : number, y : number, size : Vec2){
-        super.layout(x, y, size);
+    layout(x : number, y : number, size : Vec2, nest : number){
+        super.layout(x, y, size, nest);
 
         let widths : number[];
 
@@ -1091,9 +1117,18 @@ export class Grid extends Block {
         const num_rows = Math.ceil(this.children.length / num_cols);
 
         if(this.rows == undefined){
-            this.heights = range(num_rows).map(i => this.getRowHeight(i) );
+            if(num_rows == 1){
+
+                this.heights = [ size.y ];
+            }
+            else{
+                this.heights = range(num_rows).map(i => this.getRowHeight(i) );
+            }
         }
         else{
+            if(this.heights == undefined){
+                this.heights = this.calcHeights();
+            }
             
             const remaining_height = size.y - sum(this.heights);
             for(const [idx, row] of this.rows.entries()){
@@ -1103,6 +1138,10 @@ export class Grid extends Block {
                     this.heights[idx] = pixel(row, remaining_height);
                 }
             }
+        }
+
+        if(i18n_ts.appMode == AppMode.lesson){            
+            msg(`${" ".repeat(4 * nest)} id:${this.id} widths:${widths.map(x => x.toFixed())} heights:${this.heights.map(x => x.toFixed())}`);
         }
 
         let row = 0;
@@ -1118,7 +1157,7 @@ export class Grid extends Block {
                 child_width = sum(widths.slice(col_idx, col_idx + child.colspan))
             }
 
-            child.layout(child_x, child_y, new Vec2(child_width, this.heights[row]) );
+            child.layout(child_x, child_y, new Vec2(child_width, this.heights[row]), nest + 1 );
 
             if(col_idx + child.colspan < widths.length){
 
@@ -1139,10 +1178,31 @@ export class Grid extends Block {
     updateRootLayout(){
         this.getAllUI().forEach(x => x.minSize = undefined);
         const size = this.getMinSize();
-        const x = Math.max(0, 0.5 * (window.innerWidth  - size.x));
-        const y = Math.max(0, 0.5 * (window.innerHeight - size.y));
 
-        this.layout(x, y, size);
+        let x : number;
+        let y : number;
+
+        if(this.columns != undefined && this.columns.some(x => x.endsWith("%"))){
+
+            size.x = window.innerWidth;
+            x = 0;
+        }
+        else{
+
+            x = Math.max(0, 0.5 * (window.innerWidth  - size.x));
+        }
+
+        if(this.rows != undefined && this.rows.some(x => x.endsWith("%"))){
+
+            size.y = window.innerHeight;
+            y = 0;
+        }
+        else{
+
+            y = Math.max(0, 0.5 * (window.innerHeight - size.y));
+        }
+
+        this.layout(x, y, size, 0);
     }
 }
 
@@ -1173,7 +1233,7 @@ export class Dialog extends UI {
 
     showStyle(ev : MouseEvent){
         const size = this.content.getMinSize();
-        this.content.layout(0, 0, size);
+        this.content.layout(0, 0, size, 0);
 
         msg(`dlg: ${size.x} ${size.y} ${ev.pageX} ${ev.pageY}`)
         this.dlg.style.width  = `${size.x + 10}px`;
@@ -1339,7 +1399,7 @@ export function $checkbox(data : Attr & { text : string, change? : EventCallback
     return new CheckBox(data).setStyle(data) as CheckBox;
 }
 
-export function $textarea(data : Attr & { value? : string, cols : number, rows : number, placeholder? : string, change? : EventCallback }) : TextArea {
+export function $textarea(data : Attr & { value? : string, cols? : number, rows? : number, placeholder? : string, change? : EventCallback }) : TextArea {
     return new TextArea(data).setStyle(data) as TextArea;
 }
 

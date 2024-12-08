@@ -77,6 +77,7 @@ export function remove<T>(v : Array<T>, x : T){
 }
 
 export function sum(v : number[]) : number {
+    assert(v != undefined);
     if(v.length == 0){
         return 0;
     }
@@ -162,7 +163,7 @@ export function getPhysicalSize() {
 
 export function setImgFile(img : HTMLImageElement, file : File){
     const reader = new FileReader();
-    
+
     reader.addEventListener("load", (ev : ProgressEvent<FileReader>)=>{
         if(ev.target != null){
 
