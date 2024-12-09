@@ -58,6 +58,7 @@ export interface Attr {
     borderWidth? : number;
     padding? : string;
     textAlign? : string;
+    fontSize? : string;
     colspan? : number;
     width? : string;
     height? : string;
@@ -80,6 +81,7 @@ export abstract class UI {
     borderWidth? : number;
     padding? : string;
     textAlign? : string;
+    fontSize? : string;
     width? : string;
     height? : string;
     colspan : number = 1;
@@ -91,11 +93,11 @@ export abstract class UI {
         this.idx = ++UI.count;
     }
 
-    setStyle(data : Attr) : UI {
+    setStyle() : UI {
         const ele = this.html();
 
-        if(data.id != undefined){
-            ele.id = data.id;
+        if(this.id != undefined){
+            ele.id = this.id;
         }
 
         if(this.position != undefined){
@@ -125,6 +127,10 @@ export abstract class UI {
             ele.style.textAlign = this.textAlign;
         }
 
+        if(this.fontSize != undefined){
+            ele.style.fontSize = this.fontSize;
+        }
+
         if(this.color != undefined){
             ele.style.color = this.color;
         }
@@ -136,12 +142,12 @@ export abstract class UI {
             ele.style.backgroundColor = bgColor;
         }
 
-        if(data.width != undefined){
-            ele.style.width = data.width;
+        if(this.width != undefined){
+            ele.style.width = this.width;
         }
 
-        if(data.height != undefined){
-            ele.style.height = data.height;
+        if(this.height != undefined){
+            ele.style.height = this.height;
         }
 
         return this;
@@ -237,7 +243,7 @@ export abstract class UI {
 
     layout(x : number, y : number, size : Vec2, nest : number){
         if(i18n_ts.appMode == AppMode.lesson){            
-            msg(`${" ".repeat(4 * nest)} id:${this.constructor.name} x:${x.toFixed()} y:${y.toFixed()} position:${this.position} ${this.html().style.position}`);
+            // msg(`${" ".repeat(4 * nest)} id:${this.constructor.name} x:${x.toFixed()} y:${y.toFixed()} position:${this.position} ${this.html().style.position}`);
         }
         this.setXY(x, y);
         this.setSize(size);
@@ -255,26 +261,10 @@ export abstract class UI {
 
 export abstract class AbstractText extends UI {
     text : string;
-    fontSize : string | undefined;
 
-    constructor(data : Attr & { text : string, fontSize? : string }){
+    constructor(data : Attr & { text : string }){
         super(data);
         this.text = data.text;
-        if(data.fontSize != undefined){
-            this.fontSize = data.fontSize;            
-        }
-    }
-
-    setStyle(data : Attr & { fontSize? : string }) : UI {
-        super.setStyle(data);
-
-        const ele = this.html();
-
-        if(this.fontSize != undefined){
-            ele.style.fontSize = this.fontSize;
-        }
-
-        return this;
     }
 
     setText(text : string){
@@ -285,7 +275,7 @@ export abstract class AbstractText extends UI {
 export class Label extends AbstractText {
     span : HTMLSpanElement;
 
-    constructor(data : Attr & { text : string, fontSize? : string }){        
+    constructor(data : Attr & { text : string }){        
         super(data);
 
         this.span = document.createElement("span");
@@ -300,7 +290,7 @@ export class Label extends AbstractText {
 export abstract class TextDiv extends AbstractText {
     div : HTMLDivElement;
 
-    constructor(data : Attr & { text : string, fontSize? : string }){
+    constructor(data : Attr & { text : string }){
         super(data);
         this.div = document.createElement("div");
         // this.div.style.borderStyle = "ridge";
@@ -326,7 +316,7 @@ export abstract class TextDiv extends AbstractText {
 }
 
 export class TextBox extends TextDiv {
-    constructor(data : Attr & { text : string, fontSize? : string }){
+    constructor(data : Attr & { text : string }){
         super(data);
         this.div.innerHTML = data.text;
     }
@@ -344,7 +334,7 @@ export class TextBox extends TextDiv {
 export class LaTeXBox extends TextDiv {
     click? : MouseEventCallback;
 
-    constructor(data : Attr & { text : string, fontSize? : string, click? : MouseEventCallback }){        
+    constructor(data : Attr & { text : string, click? : MouseEventCallback }){        
         super(data);
         this.click = data.click;
 
@@ -565,9 +555,8 @@ abstract class AbstractButton extends UI {
     value?  : string;
     button : HTMLButtonElement;
     img? : HTMLImageElement;
-    fontSize? : string;
 
-    constructor(data : Attr & { value? : string, text? : string, fontSize? : string, url? : string }){
+    constructor(data : Attr & { value? : string, text? : string, url? : string }){
         super(data);
         this.value = data.value;
         this.button = document.createElement("button");
@@ -582,10 +571,6 @@ abstract class AbstractButton extends UI {
             this.button.innerText = data.text;
         }
 
-        if(data.fontSize != undefined){
-            this.fontSize = data.fontSize;            
-        }
-
         if(data.url != undefined){
             this.img = document.createElement("img");
             this.img.src = data.url;
@@ -597,18 +582,6 @@ abstract class AbstractButton extends UI {
         }
     }
 
-    setStyle(data : Attr & { fontSize? : string }) : UI {
-        super.setStyle(data);
-
-        const ele = this.html();
-
-        if(this.fontSize != undefined){
-            ele.style.fontSize = this.fontSize;
-        }
-
-        return this;
-    }
-
     setImgUrl(url : string){
         this.img!.src = url;
     }
@@ -617,7 +590,7 @@ abstract class AbstractButton extends UI {
 export class Button extends AbstractButton {
     click? : MouseEventCallback;
 
-    constructor(data : Attr & { value? : string, text? : string, fontSize? : string, url? : string, click? : MouseEventCallback }){        
+    constructor(data : Attr & { value? : string, text? : string, url? : string, click? : MouseEventCallback }){        
         super(data);
         this.click = data.click;
 
@@ -648,7 +621,7 @@ export class Anchor extends UI {
 }
 
 export class RadioButton extends AbstractButton {
-    constructor(data : Attr & { value : string, title : string, text? : string, fontSize? : string, url? : string }){
+    constructor(data : Attr & { value : string, title : string, text? : string, url? : string }){
         super(data);
 
         this.button.value = data.value;
@@ -1128,7 +1101,7 @@ export class Grid extends Block {
         }
 
         if(i18n_ts.appMode == AppMode.lesson){            
-            msg(`${" ".repeat(4 * nest)} id:${this.id} widths:${widths.map(x => x.toFixed())} heights:${this.heights.map(x => x.toFixed())}`);
+            // msg(`${" ".repeat(4 * nest)} id:${this.id} widths:${widths.map(x => x.toFixed())} heights:${this.heights.map(x => x.toFixed())}`);
         }
 
         let row = 0;
@@ -1366,72 +1339,72 @@ export function saveBlob(anchor : Anchor, name : string, blob : Blob){
 
 }
 
-export function $label(data : Attr & { text : string, fontSize? : string }) : Label {
-    return new Label(data).setStyle(data) as Label;
+export function $label(data : Attr & { text : string }) : Label {
+    return new Label(data).setStyle() as Label;
 }
 
 export function $input_text(data : Attr & { text : string, change? : EventCallback }) : InputText {
-    return new InputText(data).setStyle(data) as InputText;
+    return new InputText(data).setStyle() as InputText;
 }
 
 export function $input_color(data : Attr & { text : string, change? : EventCallback }) : InputColor {
-    return new InputColor(data).setStyle(data) as InputColor;
+    return new InputColor(data).setStyle() as InputColor;
 }
 
 export function $input_number(data : Attr & { value? : number, step? : number, min? : number, max? : number, change? : EventCallback }) : InputNumber {
-    return new InputNumber(data).setStyle(data) as InputNumber;
+    return new InputNumber(data).setStyle() as InputNumber;
 }
 
 export function $checkbox(data : Attr & { text : string, change? : EventCallback }) : CheckBox {
-    return new CheckBox(data).setStyle(data) as CheckBox;
+    return new CheckBox(data).setStyle() as CheckBox;
 }
 
 export function $textarea(data : Attr & { value? : string, cols? : number, rows? : number, placeholder? : string, change? : EventCallback }) : TextArea {
-    return new TextArea(data).setStyle(data) as TextArea;
+    return new TextArea(data).setStyle() as TextArea;
 }
 
 export function $img(data : Attr & { imgUrl : string, file? : File, click? : MouseEventCallback }) : Img {
-    return new Img(data).setStyle(data) as Img;
+    return new Img(data).setStyle() as Img;
 }
 
-export function $button(data : Attr & { value? : string, text? : string, fontSize? : string, url? : string, click? : MouseEventCallback }) : Button {
-    return new Button(data).setStyle(data) as Button;
+export function $button(data : Attr & { value? : string, text? : string, url? : string, click? : MouseEventCallback }) : Button {
+    return new Button(data).setStyle() as Button;
 }
 
 export function $anchor(data : Attr & { text? : string, url? : string }) : Anchor {
-    return new Anchor(data).setStyle(data) as Anchor;
+    return new Anchor(data).setStyle() as Anchor;
 }
 
-export function $radio(data : Attr & { value : string, title : string, text? : string, fontSize? : string, url? : string }) : RadioButton {
-    return new RadioButton(data).setStyle(data) as RadioButton;
+export function $radio(data : Attr & { value : string, title : string, text? : string, url? : string }) : RadioButton {
+    return new RadioButton(data).setStyle() as RadioButton;
 }
 
-export function $textbox(data : Attr & { text : string, fontSize? : string }) : TextBox {
-    return new TextBox(data).setStyle(data) as TextBox;
+export function $textbox(data : Attr & { text : string }) : TextBox {
+    return new TextBox(data).setStyle() as TextBox;
 }
 
 export function $block(data : Attr & { children : UI[] }) : Block {
-    return new Block(data).setStyle(data) as Block;
+    return new Block(data).setStyle() as Block;
 }
 
 export function $grid(data : Attr & { columns?: string, rows? : string, children : UI[] }) : Grid {
-    return new Grid(data).setStyle(data) as Grid;
+    return new Grid(data).setStyle() as Grid;
 }
 
 export function $flex(data : Attr & { direction?: string, children : UI[] }) : Flex {
-    return new Flex(data).setStyle(data) as Flex;
+    return new Flex(data).setStyle() as Flex;
 }
 
 export function $popup(data : Attr & { direction?: string, children : UI[], click? : (index : number, id? : string, value? : string)=>void }) : PopupMenu {
-    return new PopupMenu(data).setStyle(data) as PopupMenu;
+    return new PopupMenu(data).setStyle() as PopupMenu;
 }
 
 export function $dialog(data : Attr & { content : UI, okClick? : MouseEventCallback }) : Dialog {
-    return new Dialog(data).setStyle(data) as Dialog;
+    return new Dialog(data).setStyle() as Dialog;
 }
 
 export function $imgdiv(data : Attr & { uploadImgFile : (file : File)=>Promise<string> }) : ImgDiv {
-    return new ImgDiv(data).setStyle(data) as ImgDiv;
+    return new ImgDiv(data).setStyle() as ImgDiv;
 }
 
 }
