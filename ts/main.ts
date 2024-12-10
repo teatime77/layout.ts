@@ -242,8 +242,8 @@ export abstract class UI {
     }
 
     layout(x : number, y : number, size : Vec2, nest : number){
-        if(i18n_ts.appMode == AppMode.lesson){            
-            // msg(`${" ".repeat(4 * nest)} id:${this.constructor.name} x:${x.toFixed()} y:${y.toFixed()} position:${this.position} ${this.html().style.position}`);
+        if(i18n_ts.appMode == AppMode.lessonPlay){            
+            msg(`${" ".repeat(4 * nest)} id:${this.constructor.name} x:${x.toFixed()} y:${y.toFixed()} position:${this.position} ${this.html().style.position}`);
         }
         this.setXY(x, y);
         this.setSize(size);
@@ -410,9 +410,7 @@ export class InputColor extends AbstractInput {
     }
 }
 
-
-export class InputNumber extends AbstractInput {
-
+class InputNumberRange extends AbstractInput {
     constructor(data : Attr & { value? : number, step? : number, min? : number, max? : number, change? : EventCallback }){
         super(data);
         
@@ -420,7 +418,14 @@ export class InputNumber extends AbstractInput {
             data.width = "50px";
         }
 
-        this.input.type = "number";
+        if(this instanceof InputNumber){
+
+            this.input.type = "number";
+        }
+        else{
+
+            this.input.type = "range";
+        }
 
         if(data.value != undefined){
             this.input.value = `${data.value}`;
@@ -436,9 +441,24 @@ export class InputNumber extends AbstractInput {
         }
     }
 
+    setValue(value : number){
+        this.input.value = `${value}`;
+    }
+
     getValue() : number {
         return parseFloat(this.input.value);
     }
+
+    setMax(max_value : number){
+        this.input.max = `${max_value}`;        
+    }
+}
+
+export class InputNumber extends InputNumberRange {
+}
+
+
+export class InputRange extends InputNumberRange {
 }
 
 export class CheckBox extends AbstractInput {
@@ -524,6 +544,7 @@ export class Img extends UI {
         super(data);
         this.imgUrl = data.imgUrl;
         this.img = document.createElement("img");
+        this.img.style.objectFit = "contain";
         if(data.file != undefined){
 
             setImgFile(this.img, data.file);
@@ -546,6 +567,11 @@ export class Img extends UI {
 
     html() : HTMLElement {
         return this.img;
+    }
+
+    setImgUrl(url : string){
+        this.img.src = url;
+        this.imgUrl  = url;
     }
 }
 
@@ -577,6 +603,7 @@ abstract class AbstractButton extends UI {
     
             this.img.style.width   = "100%";
             this.img.style.height  = "100%";
+            this.img.style.objectFit = "contain";
         
             this.button.append(this.img);    
         }
@@ -1100,8 +1127,8 @@ export class Grid extends Block {
             }
         }
 
-        if(i18n_ts.appMode == AppMode.lesson){            
-            // msg(`${" ".repeat(4 * nest)} id:${this.id} widths:${widths.map(x => x.toFixed())} heights:${this.heights.map(x => x.toFixed())}`);
+        if(i18n_ts.appMode == AppMode.lessonPlay){
+            msg(`${" ".repeat(4 * nest)} id:${this.id} widths:${widths.map(x => x.toFixed())} heights:${this.heights.map(x => x.toFixed())}`);
         }
 
         let row = 0;
@@ -1353,6 +1380,10 @@ export function $input_color(data : Attr & { text : string, change? : EventCallb
 
 export function $input_number(data : Attr & { value? : number, step? : number, min? : number, max? : number, change? : EventCallback }) : InputNumber {
     return new InputNumber(data).setStyle() as InputNumber;
+}
+
+export function $input_range(data : Attr & { value? : number, step? : number, min? : number, max? : number, change? : EventCallback }) : InputRange {
+    return new InputRange(data).setStyle() as InputRange;
 }
 
 export function $checkbox(data : Attr & { text : string, change? : EventCallback }) : CheckBox {
