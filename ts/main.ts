@@ -63,6 +63,7 @@ export interface Attr {
     width? : string;
     height? : string;
     disabled? : boolean;
+    visibility? : string;
 }
 
 export abstract class UI {
@@ -84,6 +85,7 @@ export abstract class UI {
     fontSize? : string;
     width? : string;
     height? : string;
+    visibility? : string;
     colspan : number = 1;
 
     minSize : Vec2 | undefined;
@@ -148,6 +150,10 @@ export abstract class UI {
 
         if(this.height != undefined){
             ele.style.height = this.height;
+        }
+
+        if(this.visibility != undefined){
+            ele.style.visibility = this.visibility;
         }
 
         return this;
