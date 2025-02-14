@@ -1,5 +1,7 @@
 namespace layout_ts {
 //
+export const remove  = i18n_ts.remove;
+
 export class Vec2 {
     x: number;
     y: number;
@@ -68,12 +70,6 @@ export function unique<T>(v : Array<T>) : T[] {
         }
     }
     return ret;
-}
-
-export function remove<T>(v : Array<T>, x : T){
-    const idx = v.indexOf(x);
-    assert(idx != undefined);
-    v.splice(idx, 1);
 }
 
 export function sum(v : number[]) : number {
