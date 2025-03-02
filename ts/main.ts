@@ -5,6 +5,7 @@ type EventCallback = (ev : Event)=>Promise<void>;
 
 export const fgColor = "white";
 export const bgColor = "#003000";
+// export const bgColor = "black";
 
 const AppMode = i18n_ts.AppMode;
 
