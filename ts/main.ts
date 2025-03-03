@@ -9,8 +9,8 @@ export const bgColor = "#003000";
 
 const AppMode = i18n_ts.AppMode;
 
-export function bodyOnLoad(){
-    i18n_ts.initI18n();
+export async function bodyOnLoad(){
+    await i18n_ts.initI18n();
 
     const root = makeTestUI();
     Layout.initLayout(root);
