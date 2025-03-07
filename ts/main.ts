@@ -589,7 +589,7 @@ abstract class AbstractButton extends UI {
     button : HTMLButtonElement;
     img? : HTMLImageElement;
 
-    constructor(data : Attr & { value? : string, text? : string, url? : string }){
+    constructor(data : Attr & { id? : string, value? : string, text? : string, url? : string }){
         super(data);
         this.value = data.value;
         this.button = document.createElement("button");
@@ -655,7 +655,7 @@ export class Anchor extends UI {
 }
 
 export class RadioButton extends AbstractButton {
-    constructor(data : Attr & { value : string, title : string, text? : string, url? : string }){
+    constructor(data : Attr & { id? : string, value : string, title : string, text? : string, url? : string }){
         super(data);
 
         this.button.value = data.value;
@@ -1413,7 +1413,7 @@ export function $anchor(data : Attr & { text? : string, url? : string }) : Ancho
     return new Anchor(data).setStyle() as Anchor;
 }
 
-export function $radio(data : Attr & { value : string, title : string, text? : string, url? : string }) : RadioButton {
+export function $radio(data : Attr & { id? : string, value : string, title : string, text? : string, url? : string }) : RadioButton {
     return new RadioButton(data).setStyle() as RadioButton;
 }
 
