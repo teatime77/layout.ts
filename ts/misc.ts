@@ -90,23 +90,14 @@ function preventDefaults(ev:DragEvent) {
     ev.stopPropagation();
 }
 
+export function closeDlg() : boolean {
+    if(modalDlg.style.display != "none"){
+        modalDlg.style.display = "none";
+        modalDlg.innerHTML = "";
+        return true;
+    }
 
-export async function showImageDlg(ev:MouseEvent, upload_img_file : (file : File)=>Promise<string>){
-    const content = $flex({
-        width  : "400px",
-        height : "300px",
-        backgroundColor : "cornsilk",
-        children: [
-
-        ]
-    });
-
-
-    const dlg = layout_ts.$dialog({
-        content : content
-    });
-
-    dlg.showModal(ev);
+    return false;
 }
 
 }

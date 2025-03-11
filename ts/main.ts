@@ -7,6 +7,8 @@ export const fgColor = "white";
 export const bgColor = "#003000";
 // export const bgColor = "black";
 
+export let modalDlg : HTMLDivElement;
+
 const AppMode = i18n_ts.AppMode;
 
 export async function bodyOnLoad(){
@@ -48,6 +50,7 @@ function pixel(length : string,  remaining_length? : number) : number {
 
 export interface Attr {
     id? : string;
+    className? : string;
     parent? : Block;
     obj? : any;
     name? : string;
@@ -57,7 +60,9 @@ export interface Attr {
     backgroundColor? : string;
     borderStyle? : string;
     borderWidth? : number;
-    padding? : string;
+    padding? : number;
+    verticalAlign? : string;
+    horizontalAlign? : string;
     textAlign? : string;
     fontSize? : string;
     colspan? : number;
@@ -72,6 +77,7 @@ export abstract class UI {
 
     idx : number;
     id? : string;
+    className? : string;
     parent? : Block;
     obj? : any;
     name? : string;
@@ -81,7 +87,9 @@ export abstract class UI {
     backgroundColor? : string;
     borderStyle? : string;
     borderWidth? : number;
-    padding? : string;
+    padding? : number;
+    verticalAlign? : string;
+    horizontalAlign? : string;
     textAlign? : string;
     fontSize? : string;
     width? : string;
@@ -90,6 +98,8 @@ export abstract class UI {
     colspan : number = 1;
 
     minSize : Vec2 | undefined;
+    widthPix  : number = NaN;
+    heightPix : number = NaN;
 
     constructor(data : Attr){   
         Object.assign(this, data);
@@ -101,6 +111,10 @@ export abstract class UI {
 
         if(this.id != undefined){
             ele.id = this.id;
+        }
+
+        if(this.className != undefined){
+            ele.className = this.className;
         }
 
         if(this.position != undefined){
@@ -123,7 +137,7 @@ export abstract class UI {
         }
 
         if(this.padding != undefined){
-            ele.style.padding = this.padding;
+            ele.style.padding = `${this.padding}px`;
         }
 
         if(this.textAlign != undefined){
@@ -162,6 +176,20 @@ export abstract class UI {
 
     abstract html() : HTMLElement;
 
+    borderWidthPadding() : number {
+        let n : number = 0;
+        
+        if(this.borderWidth != undefined){
+            n += 2 * this.borderWidth;
+        }
+
+        if(this.padding != undefined){
+            n += 2 * this.padding;
+        }
+
+        return n;
+    }
+
     getMinSize() : Vec2 {
         if(this.minSize != undefined){
             return this.minSize;
@@ -171,21 +199,30 @@ export abstract class UI {
         let height : number | undefined;
 
         if(this.width != undefined && this.width.endsWith("px")){
-            width = pixel(this.width);
+            width = pixel(this.width) + this.borderWidthPadding();
         }
 
         if(this.height != undefined && this.height.endsWith("px")){
-            height = pixel(this.height);
+            height = pixel(this.height) + this.borderWidthPadding();
         }
 
         if(width == undefined || height == undefined){
 
-            const rect = this.html().getBoundingClientRect();
+            let size : Vec2;
+            
+            if(this instanceof AbstractText){
+                size = this.getTextSize();
+            }
+            else{
+                const rect = this.html().getBoundingClientRect();
+                size = new Vec2(rect.width, rect.height);
+           }
+
             if(width == undefined){
-                width = rect.width;
+                width = size.x;
             }
             if(height == undefined){
-                height = rect.height;
+                height = size.y;
             }
         }
 
@@ -239,10 +276,28 @@ export abstract class UI {
         }
         const html = this.html();
 
-        const padding = (this.padding != undefined ? pixel(this.padding) : 0);
+        const borderWidthPadding = this.borderWidthPadding();
 
-        html.style.width  = `${size.x  - padding * 2}px`;
-        html.style.height = `${size.y - padding * 2}px`;
+        if(this.minSize == undefined){
+            throw new MyError();
+        }
+
+        if(this.width != undefined){
+            this.widthPix  = this.minSize.x;
+        }
+        else{
+            this.widthPix  = size.x - borderWidthPadding;
+        }
+
+        if(this.height != undefined){
+            this.heightPix = this.minSize.y;
+        }
+        else{
+            this.heightPix = size.y - borderWidthPadding;
+        }
+
+        html.style.width  = `${this.widthPix}px`;
+        html.style.height = `${this.heightPix}px`;
     }
 
     selectUI(selected : boolean){
@@ -252,8 +307,12 @@ export abstract class UI {
         if(i18n_ts.appMode == AppMode.lessonPlay){            
             msg(`${" ".repeat(4 * nest)} id:${this.constructor.name} x:${x.toFixed()} y:${y.toFixed()} position:${this.position} ${this.html().style.position}`);
         }
-        this.setXY(x, y);
+
         this.setSize(size);
+        if(this.horizontalAlign == "center"){
+            x += 0.5 * (size.x - this.widthPix);
+        }
+        this.setXY(x, y);
     }
 
     ratio() : number {
@@ -277,6 +336,31 @@ export abstract class AbstractText extends UI {
     setText(text : string){
         this.text = text;
     }
+
+    getTextSize() : Vec2 {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+
+        const style = window.getComputedStyle(this.html());
+        const font_info = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        ctx.font = font_info;
+
+        const metrics = ctx.measureText(this.text);
+      
+        const actualHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+      
+        msg(`font :[${font_info}]  w:[${metrics.width}] h:[${actualHeight}] id:[${this.id}] [${this.text}]`);
+        if(this.text != ""){
+            msg("");
+        }
+        else{
+            msg("");
+        }
+
+        const width  = metrics.width + this.borderWidthPadding();
+        const height = actualHeight  + this.borderWidthPadding();
+        return new Vec2(width, height);
+    }
 }
 
 export class Label extends AbstractText {
@@ -287,6 +371,8 @@ export class Label extends AbstractText {
 
         this.span = document.createElement("span");
         this.span.innerText = this.text;
+        // this.span.style.justifyContent = "center";
+        // this.span.style.textAlign = "center";
     }
 
     html() : HTMLElement {
@@ -958,6 +1044,9 @@ export class Grid extends Block {
     // widths!   : number[];
     heights! : number[];
 
+    numCols : number = NaN;
+    numRows : number = NaN;
+
     constructor(data : Attr & { columns?: string, rows? : string, children : UI[] }){        
         super(data);
         if(data.columns != undefined){
@@ -972,16 +1061,8 @@ export class Grid extends Block {
     }
 
     getRow(idx : number) : UI[] {
-        if(this.rows == undefined){
-            return this.children;
-        }
-        else if(this.columns == undefined){
-            return [ this.children[idx] ]
-        }
-        else{
-            const num_cols = this.columns.length;
-            return this.children.slice(idx * num_cols, (idx + 1) * num_cols);
-        }
+        assert(!isNaN(this.numCols) && !isNaN(this.numRows));
+        return this.children.slice(idx * this.numCols, (idx + 1) * this.numCols);
     }
 
     getRowHeight(idx : number) : number {
@@ -989,17 +1070,8 @@ export class Grid extends Block {
     }
 
     getColumn(idx : number) : UI[]{
-        if(this.columns == undefined){
-            return this.children;
-        }
-        else if(this.rows == undefined){
-            assert(0 <= idx && idx < this.children.length);
-            return [ this.children[idx] ]
-        }
-        else{
-            const num_cols = this.columns.length;
-            return Array.from(this.children.entries()).filter(x => x[0] % num_cols == idx).map(x => x[1]);
-        }
+        assert(!isNaN(this.numCols) && !isNaN(this.numRows));
+        return range(this.children.length).filter(i => i % this.numCols == idx).map(i => this.children[i]);
     }
 
     getColumnWith(idx : number) : number {
@@ -1023,7 +1095,9 @@ export class Grid extends Block {
     getMinSize() : Vec2 {
         let width : number;
 
-        const num_cols = (this.columns == undefined ? 1 : this.columns.length);
+        this.numCols = (this.columns == undefined ? 1 : this.columns.length);
+        this.numRows = Math.ceil(this.children.length / this.numCols);
+        assert(this.rows == undefined || this.rows.length == this.numRows);
 
         if(this.width != undefined){
             assert(this.width.endsWith("px"));
@@ -1054,10 +1128,8 @@ export class Grid extends Block {
 
         let height : number;
 
-        const num_rows = Math.ceil(this.children.length / num_cols);
-
         if(this.height != undefined){
-            assert(num_rows == 1);
+            assert(this.numRows == 1);
             assert(this.height.endsWith("px"));
             height = pixel(this.height);
             this.heights = [ height ];
@@ -1066,7 +1138,7 @@ export class Grid extends Block {
 
 
             if(this.rows == undefined){
-                this.heights = range(num_rows).map(i => this.getRowHeight(i) );
+                this.heights = range(this.numRows).map(i => this.getRowHeight(i) );
                 height = sum( this.heights ) ;
             }
             else{
@@ -1095,29 +1167,19 @@ export class Grid extends Block {
 
         let widths : number[];
 
-        let num_cols;
         if(this.columns == undefined){
-            num_cols = 1;
             widths = [ size.x ];
         }
         else{
-            num_cols = this.columns.length;
 
             const fixed_width = sum(this.columns.filter(x => x.endsWith("px")).map(x => pixel(x)));
             const remaining_width = size.x - fixed_width;
             widths = this.columns.map(x => pixel(x, remaining_width));
         }
 
-        const num_rows = Math.ceil(this.children.length / num_cols);
 
         if(this.rows == undefined){
-            if(num_rows == 1){
-
-                this.heights = [ size.y ];
-            }
-            else{
-                this.heights = range(num_rows).map(i => this.getRowHeight(i) );
-            }
+            this.heights = range(this.numRows).map(i => this.getRowHeight(i) );
         }
         else{
             if(this.heights == undefined){
@@ -1201,57 +1263,66 @@ export class Grid extends Block {
 }
 
 export class Dialog extends UI {
-    dlg : HTMLDialogElement;
+    div : HTMLDivElement;
     content : UI;
 
     constructor(data : Attr & { content : UI }){
         super(data);
         this.content = data.content;
 
-        this.dlg = document.createElement("dialog");
-        this.dlg.style.position = "fixed";
-        this.dlg.style.zIndex  = "1";
+        this.div = document.createElement("div");
+        this.div.style.position = "fixed";
+        this.div.style.zIndex  = "1";
 
-        this.dlg.append(this.content.html());
-        document.body.append(this.dlg);
+        this.div.append(this.content.html());
     }
 
     html() : HTMLElement {
-        return this.dlg;
+        return this.div;
     }
 
     setXY(x : number, y : number){
-        this.dlg.style.marginLeft = `${x}px`;
-        this.dlg.style.marginTop  = `${y}px`;
+        this.div.style.marginLeft = `${x}px`;
+        this.div.style.marginTop  = `${y}px`;
     }
 
-    showStyle(ev : MouseEvent){
+    showStyle(pageX : 0, pageY : 0){
         const size = this.content.getMinSize();
         this.content.layout(0, 0, size, 0);
 
-        msg(`dlg: ${size.x} ${size.y} ${ev.pageX} ${ev.pageY}`)
-        this.dlg.style.width  = `${size.x + 10}px`;
-        this.dlg.style.height = `${size.y + 10}px`;
+        msg(`dlg: ${size.x} ${size.y} ${pageX} ${pageY}`)
+        this.div.style.width  = `${size.x + 10}px`;
+        this.div.style.height = `${size.y + 10}px`;
 
-        this.dlg.style.marginLeft = `${ev.pageX}px`;
-        this.dlg.style.marginTop  = `${ev.pageY}px`;
+        this.div.style.marginLeft = `${pageX}px`;
+        this.div.style.marginTop  = `${pageY}px`;
     }
 
     open() : boolean {
-        return this.dlg.open;
+        return this.div.parentElement == modalDlg;
     }
 
     close(){
-        this.dlg.close();
+        modalDlg.innerHTML = "";
+        modalDlg.style.display = "none";
     }
 
-    showModal(ev : MouseEvent){
+    showModal(){
+    /*
         setTimeout(()=>{
             // getBoundingClientRect can be used after showModal
 
-            this.showStyle(ev);
-        })
-        this.dlg.showModal();
+            this.showStyle(0, 0);
+        });
+    */
+        if(this.div.parentElement != modalDlg){
+
+            modalDlg.append(this.div);
+        }
+
+        this.showStyle(0, 0);
+
+        modalDlg.style.display = "block";
     }
 }
 
@@ -1358,6 +1429,8 @@ export class Layout {
         window.addEventListener("resize", (ev : UIEvent)=>{
             Layout.root.updateRootLayout();
         });
+
+        modalDlg = $div("modal_dlg");
     }
 }
 
