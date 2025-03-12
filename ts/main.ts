@@ -47,6 +47,10 @@ function pixel(length : string,  remaining_length? : number) : number {
     throw new MyError();
 }
 
+enum Orientation {
+    horizontal,
+    vertical,
+}
 
 export interface Attr {
     id? : string;
@@ -61,6 +65,7 @@ export interface Attr {
     borderStyle? : string;
     borderWidth? : number;
     padding? : number;
+    paddingLeft? : string;
     verticalAlign? : string;
     horizontalAlign? : string;
     textAlign? : string;
@@ -88,6 +93,7 @@ export abstract class UI {
     borderStyle? : string;
     borderWidth? : number;
     padding? : number;
+    paddingLeft? : string;
     verticalAlign? : string;
     horizontalAlign? : string;
     textAlign? : string;
@@ -349,13 +355,7 @@ export abstract class AbstractText extends UI {
       
         const actualHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
       
-        msg(`font :[${font_info}]  w:[${metrics.width}] h:[${actualHeight}] id:[${this.id}] [${this.text}]`);
-        if(this.text != ""){
-            msg("");
-        }
-        else{
-            msg("");
-        }
+        // msg(`font :[${font_info}]  w:[${metrics.width}] h:[${actualHeight}] id:[${this.id}] [${this.text}]`);
 
         const width  = metrics.width + this.borderWidthPadding();
         const height = actualHeight  + this.borderWidthPadding();
@@ -741,11 +741,13 @@ export class Anchor extends UI {
 }
 
 export class RadioButton extends AbstractButton {
-    constructor(data : Attr & { id? : string, value : string, title : string, text? : string, url? : string }){
+    constructor(data : Attr & { id? : string, value : string, title? : string, text? : string, url? : string }){
         super(data);
 
         this.button.value = data.value;
-        this.button.title = data.title;
+        if(data.title != undefined){
+            this.button.title = data.title;
+        }
         this.button.style.borderWidth = "3px";
         this.button.style.borderStyle = "outset";
     }
@@ -1041,7 +1043,7 @@ export class Grid extends Block {
     columns? : string[];
     rows? : string[];
 
-    // widths!   : number[];
+    minWidths : number[] = [];
     heights! : number[];
 
     numCols : number = NaN;
@@ -1110,19 +1112,27 @@ export class Grid extends Block {
                 width = this.getColumnWith(0);
             }
             else{
+                this.minWidths = new Array(this.columns.length).fill(0);
 
-                const fixed_width = sum(this.columns.filter(col => col.endsWith("px")).map(col => pixel(col)));
-
-                let remaining_width = 0;
-                for(const [idx, size] of this.columns.entries()){
-                    if(! size.endsWith("px")){
-
+                for(const [idx, col] of this.columns.entries()){
+                    if(col.endsWith("px")){
+                        this.minWidths[idx] = pixel(col);
+                    }
+                    else{
                         const col_width = Math.max(... this.getColumn(idx).map(ui => ui.getMinWidth()) );
-                        remaining_width = Math.max(col_width / ratio(size));
+                        if(col == "auto"){
+                            this.minWidths[idx] = col_width;
+                        }
+                        else if(col.endsWith("%")){
+                            this.minWidths[idx] = col_width / ratio(col);
+                        }
+                        else{
+                            throw new MyError();
+                        }
                     }
                 }
 
-                width = fixed_width + remaining_width;
+                width = sum(this.minWidths);
             }
         }
 
@@ -1135,7 +1145,6 @@ export class Grid extends Block {
             this.heights = [ height ];
         }
         else{
-
 
             if(this.rows == undefined){
                 this.heights = range(this.numRows).map(i => this.getRowHeight(i) );
@@ -1165,16 +1174,26 @@ export class Grid extends Block {
     layout(x : number, y : number, size : Vec2, nest : number){
         super.layout(x, y, size, nest);
 
-        let widths : number[];
+        let widths = new Array(this.minWidths.length).fill(0);
 
         if(this.columns == undefined){
             widths = [ size.x ];
         }
         else{
+            let fixed_width = 0;
+            for(const [idx, col] of this.columns.entries()){
+                if(col.endsWith("px") || col == "auto"){
+                    widths[idx]  = this.minWidths[idx];
+                    fixed_width += this.minWidths[idx];
+                }
+            }
 
-            const fixed_width = sum(this.columns.filter(x => x.endsWith("px")).map(x => pixel(x)));
             const remaining_width = size.x - fixed_width;
-            widths = this.columns.map(x => pixel(x, remaining_width));
+            for(const [idx, col] of this.columns.entries()){
+                if(col.endsWith("%")){
+                    widths[idx]  = remaining_width * ratio(col);
+                }
+            }
         }
 
 
@@ -1259,6 +1278,51 @@ export class Grid extends Block {
         }
 
         this.layout(x, y, size, 0);
+    }
+}
+
+export class SelectionList extends Grid {
+    selectedIndex : number = NaN;
+    selectionChanged? : (index:number)=>void;
+
+    constructor(data : Attr & { orientation? : Orientation, children : RadioButton[], selectedIndex? : number, selectionChanged? : (index:number)=>void }){
+        if(data.orientation == Orientation.vertical){
+            (data as any).rows    = data.children.map(_ => "auto").join(" ");
+        }
+        else{
+            (data as any).columns = data.children.map(_ => "auto").join(" ");
+        }
+        super(data);
+
+        if(data.selectedIndex != undefined){
+            this.selectedIndex = data.selectedIndex;
+        }
+
+        if(data.selectionChanged != undefined){
+
+            this.selectionChanged = data.selectionChanged;
+        }
+
+        for(const [idx, ui] of this.children.entries()){
+            ui.html().addEventListener("click", (ev : MouseEvent)=>{
+                msg(`selection-Changed[${idx}]`);
+                this.selectedIndex = idx;
+                if(this.selectionChanged != undefined){
+                    this.selectionChanged(idx);
+                }
+            });
+        }
+    }
+
+    setStyle() : UI {
+        super.setStyle();
+
+        msg(`selected-Index : ${this.selectedIndex}`);
+        if(!isNaN(this.selectedIndex)){
+            this.children[this.selectedIndex].selectUI(true);
+        }
+
+        return this;
     }
 }
 
@@ -1486,7 +1550,7 @@ export function $anchor(data : Attr & { text? : string, url? : string }) : Ancho
     return new Anchor(data).setStyle() as Anchor;
 }
 
-export function $radio(data : Attr & { id? : string, value : string, title : string, text? : string, url? : string }) : RadioButton {
+export function $radio(data : Attr & { id? : string, value : string, title? : string, text? : string, url? : string }) : RadioButton {
     return new RadioButton(data).setStyle() as RadioButton;
 }
 
@@ -1500,6 +1564,10 @@ export function $block(data : Attr & { children : UI[] }) : Block {
 
 export function $grid(data : Attr & { columns?: string, rows? : string, children : UI[] }) : Grid {
     return new Grid(data).setStyle() as Grid;
+}
+
+export function $selection(data : Attr & { orientation? : Orientation, children : RadioButton[], selectedIndex? : number, selectionChanged? : (index:number)=>void }) : SelectionList {
+    return new SelectionList(data).setStyle() as SelectionList;
 }
 
 export function $flex(data : Attr & { direction?: string, children : UI[] }) : Flex {
