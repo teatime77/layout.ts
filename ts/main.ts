@@ -11,6 +11,9 @@ export let modalDlg : HTMLDivElement;
 
 const AppMode = i18n_ts.AppMode;
 
+const TextSizeFill = 8;
+const inputPadding = 4;
+
 export async function bodyOnLoad(){
     await i18n_ts.initI18n();
 
@@ -142,8 +145,8 @@ export abstract class UI {
             ele.style.borderStyle = this.borderStyle;
         }
 
-        if(this.padding != undefined){
-            ele.style.padding = `${this.padding}px`;
+        if(this.padding == undefined && (this instanceof InputText || this instanceof InputNumberRange)){
+            this.padding = inputPadding;
         }
 
         if(this.textAlign != undefined){
@@ -222,7 +225,7 @@ export abstract class UI {
             else{
                 const rect = this.html().getBoundingClientRect();
                 size = new Vec2(rect.width, rect.height);
-           }
+            }
 
             if(width == undefined){
                 width = size.x;
@@ -357,8 +360,8 @@ export abstract class AbstractText extends UI {
       
         // msg(`font :[${font_info}]  w:[${metrics.width}] h:[${actualHeight}] id:[${this.id}] [${this.text}]`);
 
-        const width  = metrics.width + this.borderWidthPadding();
-        const height = actualHeight  + this.borderWidthPadding();
+        const width  = metrics.width + this.borderWidthPadding() + TextSizeFill;
+        const height = actualHeight  + this.borderWidthPadding() + TextSizeFill;
         return new Vec2(width, height);
     }
 }
