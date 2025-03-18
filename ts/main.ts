@@ -1320,7 +1320,7 @@ export class SelectionList extends Grid {
     setStyle() : UI {
         super.setStyle();
 
-        msg(`selected-Index : ${this.selectedIndex}`);
+        // msg(`selected-Index : ${this.selectedIndex}`);
         if(!isNaN(this.selectedIndex)){
             this.children[this.selectedIndex].selectUI(true);
         }
@@ -1357,7 +1357,7 @@ export class Dialog extends UI {
         const size = this.content.getMinSize();
         this.content.layout(0, 0, size, 0);
 
-        msg(`dlg: ${size.x} ${size.y} ${pageX} ${pageY}`)
+        // msg(`dlg: ${size.x} ${size.y} ${pageX} ${pageY}`);
         this.div.style.width  = `${size.x + 10}px`;
         this.div.style.height = `${size.y + 10}px`;
 
