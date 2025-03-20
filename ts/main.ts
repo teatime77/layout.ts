@@ -219,7 +219,7 @@ export abstract class UI {
 
             let size : Vec2;
             
-            if(this instanceof AbstractText){
+            if(this instanceof AbstractText && !(this instanceof LaTeXBox)){
                 size = this.getTextSize();
             }
             else{
@@ -432,6 +432,7 @@ export class LaTeXBox extends TextDiv {
 
     constructor(data : Attr & { text : string, click? : MouseEventCallback }){        
         super(data);
+        this.div.innerHTML = data.text;
         this.click = data.click;
 
         this.div.addEventListener("click", async (ev:MouseEvent)=>{
@@ -439,12 +440,14 @@ export class LaTeXBox extends TextDiv {
                 await this.click(ev);
             }
         });
+    }
 
-        if(this.parent == undefined){
-            throw new MyError();
-        }
+    setStyle() : UI {
+        super.setStyle();
 
-        this.parent.addChild(this)
+        parser_ts.renderKatexSub(this.div, this.text);
+
+        return this;
     }
 
     setText(text : string){
@@ -1559,6 +1562,10 @@ export function $radio(data : Attr & { id? : string, value : string, title? : st
 
 export function $textbox(data : Attr & { text : string }) : TextBox {
     return new TextBox(data).setStyle() as TextBox;
+}
+
+export function $latex(data : Attr & { text : string, click? : MouseEventCallback }) : LaTeXBox {
+    return new LaTeXBox(data).setStyle() as LaTeXBox;
 }
 
 export function $block(data : Attr & { children : UI[] }) : Block {
