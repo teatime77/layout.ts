@@ -832,15 +832,17 @@ export class Block extends UI {
         }
     }
 
-    popChild(){
+    popChild() : UI | undefined {
         if(this.children.length == 0){
-            return;
+            return undefined;
         }
 
         const child = this.children.pop()!;
         child.parent = undefined;
 
         this.div.removeChild(child.html());
+
+        return child;
     }
 
     removeChild(child : UI){
