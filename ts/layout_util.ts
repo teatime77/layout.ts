@@ -10,6 +10,10 @@ export class Vec2 {
         this.x = x;
         this.y = y;
     }
+
+    static zero() : Vec2 {
+        return new Vec2(0, 0);
+    }
 }
 
 const $dic = new Map<string, HTMLElement>();
