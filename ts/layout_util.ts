@@ -1,6 +1,7 @@
 namespace layout_ts {
 //
 export const remove  = i18n_ts.remove;
+export const sum     = i18n_ts.sum;
 
 export class Vec2 {
     x: number;
@@ -74,15 +75,6 @@ export function unique<T>(v : Array<T>) : T[] {
         }
     }
     return ret;
-}
-
-export function sum(v : number[]) : number {
-    assert(v != undefined);
-    if(v.length == 0){
-        return 0;
-    }
-    
-    return v.reduce((acc, cur) => acc + cur, 0);
 }
 
 export async function fetchText(fileURL: string) {
