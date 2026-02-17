@@ -1,5 +1,6 @@
-namespace layout_ts {
-//
+import { msg } from "@i18n";
+import { setImgFile } from "./layout_util";
+import { UI, modalDlg, Attr } from "./main";
 
 export class ImgDiv extends UI {
     div : HTMLDivElement;
@@ -76,6 +77,7 @@ export class ImgDiv extends UI {
 
     setImgUrl(url : string){
         this.img.src = url;
+        msg(`img url 5:${this.img.src}`);
         this.imgUrl  = url;
     }
 
@@ -100,4 +102,6 @@ export function closeDlg() : boolean {
     return false;
 }
 
+export function $imgdiv(data : Attr & { uploadImgFile : (file : File)=>Promise<string> }) : ImgDiv {
+    return new ImgDiv(data).setStyle() as ImgDiv;
 }

@@ -1,5 +1,7 @@
-namespace layout_ts {
-//
+import { assert, MyError, Vec2, msg, sum, AppMode, appMode, range, $div } from "@i18n";
+import { renderKatexSub } from "@parser";
+import { setImgFile } from "./layout_util";
+
 type MouseEventCallback = (ev : MouseEvent)=>Promise<void>;
 type EventCallback = (ev : Event)=>Promise<void>;
 
@@ -9,18 +11,8 @@ export const bgColor = "#003000";
 
 export let modalDlg : HTMLDivElement;
 
-const AppMode = i18n_ts.AppMode;
-
 const TextSizeFill = 8;
 const inputPadding = 4;
-
-export async function bodyOnLoad(){
-    await i18n_ts.initI18n();
-
-    const root = makeTestUI();
-    Layout.initLayout(root);
-}
-
 
 function ratio(width : string) : number {
     width = width.trim();
@@ -313,7 +305,7 @@ export abstract class UI {
     }
 
     layout(x : number, y : number, size : Vec2, nest : number){
-        if(i18n_ts.appMode == AppMode.lessonPlay){            
+        if(appMode == AppMode.lessonPlay){            
             msg(`${" ".repeat(4 * nest)} id:${this.constructor.name} x:${x.toFixed()} y:${y.toFixed()} position:${this.position} ${this.html().style.position}`);
         }
 
@@ -445,14 +437,14 @@ export class LaTeXBox extends TextDiv {
     setStyle() : UI {
         super.setStyle();
 
-        parser_ts.renderKatexSub(this.div, this.text);
+        renderKatexSub(this.div, this.text);
 
         return this;
     }
 
     setText(text : string){
         super.setText(text);
-        parser_ts.renderKatexSub(this.div, this.text);
+        renderKatexSub(this.div, this.text);
     }
 }
 
@@ -651,6 +643,7 @@ export class Img extends UI {
         else{
 
             this.img.src = this.imgUrl;
+            msg(`img url 1:${this.img.src}`);
         }
 
         if(data.click != undefined){
@@ -670,6 +663,7 @@ export class Img extends UI {
 
     setImgUrl(url : string){
         this.img.src = url;
+        msg(`img url 2:${this.img.src}`);
         this.imgUrl  = url;
     }
 }
@@ -699,6 +693,7 @@ abstract class AbstractButton extends UI {
         if(data.url != undefined){
             this.img = document.createElement("img");
             this.img.src = data.url;
+            msg(`img url 3:${this.img.src}`);
     
             this.img.style.width   = "100%";
             this.img.style.height  = "100%";
@@ -1223,7 +1218,7 @@ export class Grid extends Block {
             }
         }
 
-        if(i18n_ts.appMode == AppMode.lessonPlay){
+        if(appMode == AppMode.lessonPlay){
             msg(`${" ".repeat(4 * nest)} id:${this.id} widths:${widths.map(x => x.toFixed())} heights:${this.heights.map(x => x.toFixed())}`);
         }
 
@@ -1592,10 +1587,4 @@ export function $popup(data : Attr & { direction?: string, children : UI[], clic
 
 export function $dialog(data : Attr & { content : UI, okClick? : MouseEventCallback }) : Dialog {
     return new Dialog(data).setStyle() as Dialog;
-}
-
-export function $imgdiv(data : Attr & { uploadImgFile : (file : File)=>Promise<string> }) : ImgDiv {
-    return new ImgDiv(data).setStyle() as ImgDiv;
-}
-
 }

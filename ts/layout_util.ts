@@ -1,88 +1,5 @@
-namespace layout_ts {
-//
-export const remove  = i18n_ts.remove;
-export const sum     = i18n_ts.sum;
+import { assert, MyError } from "@i18n";
 
-export class Vec2 {
-    x: number;
-    y: number;
-
-    constructor(x:number, y: number){
-        this.x = x;
-        this.y = y;
-    }
-
-    static zero() : Vec2 {
-        return new Vec2(0, 0);
-    }
-}
-
-const $dic = new Map<string, HTMLElement>();
-
-export function $(id : string) : HTMLElement {
-    let ele = $dic.get(id);
-    if(ele == undefined){
-        ele = document.getElementById(id)!;
-        $dic.set(id, ele);
-    }
-
-    return ele;
-}
-
-export function $div(id : string) : HTMLDivElement {
-    return $(id) as HTMLDivElement;
-}
-
-export function $inp(id : string) : HTMLInputElement {
-    return $(id) as HTMLInputElement;
-}
-
-export function $sel(id : string) : HTMLSelectElement {
-    return $(id) as HTMLSelectElement;
-}
-        
-export class MyError extends Error {
-    constructor(text : string = ""){
-        super(text);
-    }
-}
-
-export function assert(b : boolean, msg : string = ""){
-    if(!b){
-        throw new MyError(msg);
-    }
-}    
-
-export function msg(txt : string){
-    Log.log(txt);
-}
-
-export function range(n: number) : number[]{
-    return [...Array(n).keys()];
-}
-
-export function last<T>(v : Array<T>) : T {
-    return v[v.length - 1];
-}
-
-export function unique<T>(v : Array<T>) : T[] {
-    let set = new Set<T>();
-    const ret : T[] = [];
-    for(const x of v){
-        if(!set.has(x)){
-            set.add(x);
-            ret.push(x);
-        }
-    }
-    return ret;
-}
-
-export async function fetchText(fileURL: string) {
-    const response = await fetch(fileURL);
-    const text = await response!.text();
-
-    return text;
-}
 
 export function pseudoColor(n : number) : [number, number, number] {
     n = Math.max(0, Math.min(1, n));
@@ -175,8 +92,5 @@ export function setImgFile(img : HTMLImageElement, file : File){
     });
 
     reader.readAsDataURL(file);
-
-}
-
 
 }

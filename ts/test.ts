@@ -1,26 +1,27 @@
-namespace layout_ts {
-//
+import { initI18n, msg, parseURL } from "@i18n";
+import { $popup, $button, $grid, $block, $checkbox, $radio, Layout } from "./main";
+
 export function makeTestUI(){
-    const [ origin, , ] = i18n_ts.parseURL();
+    const [ origin, , , url_base] = parseURL();
 
     const img_menu = $popup({
         children : [
             $button({
                 width : "24px",
                 height : "24px",
-                url : `${origin}/lib/plane/img/line-segment.png`
+                url : `${url_base}/lib/plane/img/line-segment.png`
             })
             ,
             $button({
                 width : "24px",
                 height : "24px",
-                url : `${origin}/lib/plane/img/half-line.png`
+                url : `${url_base}/lib/plane/img/half-line.png`
             })
             ,
             $button({
                 width : "24px",
                 height : "24px",
-                url : `${origin}/lib/plane/img/line.png`
+                url : `${url_base}/lib/plane/img/line.png`
             })
         ]
     });
@@ -82,7 +83,7 @@ export function makeTestUI(){
                                 title : "",
                                 width : "24px",
                                 height : "24px",
-                                url : `${origin}/lib/plane/img/selection.png`
+                                url : `${url_base}/lib/plane/img/selection.png`
                             })
                             ,
                             $radio({
@@ -90,7 +91,7 @@ export function makeTestUI(){
                                 title : "",
                                 width : "24px",
                                 height : "24px",
-                                url : `${origin}/lib/plane/img/point.png`
+                                url : `${url_base}/lib/plane/img/point.png`
                             })
                         ],
                     })
@@ -101,7 +102,7 @@ export function makeTestUI(){
                                 id : "add-statement",
                                 width : "24px",
                                 height : "24px",
-                                url : `${origin}/lib/plane/img/text.png`,
+                                url : `${url_base}/lib/plane/img/text.png`,
                                 click : async (ev : MouseEvent)=>{
                                     msg("show text menu");
                                     text_menu.show(ev);
@@ -111,7 +112,7 @@ export function makeTestUI(){
                             $button({
                                 width : "24px",
                                 height : "24px",
-                                url : `${origin}/lib/plane/img/statement.png`,
+                                url : `${url_base}/lib/plane/img/statement.png`,
                                 click : async (ev : MouseEvent)=>{
                                     img_menu.show(ev);
                                 }
@@ -134,4 +135,9 @@ export function makeTestUI(){
     return root;
 }
 
+export async function bodyOnLoad(){
+    await initI18n();
+
+    const root = makeTestUI();
+    Layout.initLayout(root);
 }
