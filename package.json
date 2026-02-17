@@ -1,0 +1,6 @@
+{
+  "name": "@stem/layout",
+  "scripts": {
+    "build": "tsc -b && vite build"
+  }
+}
