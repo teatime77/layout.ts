@@ -1,17 +1,19 @@
 import { defineConfig, mergeConfig } from 'vite';
+import tsconfigPaths from 'vite-tsconfig-paths';
 import { baseConfig } from '../vite.config.base';
 import { resolve } from 'path';
 
 export default defineConfig(
   mergeConfig(baseConfig, {
+    plugins: [tsconfigPaths()],
     build: {
       minify: false,
       lib: {
         entry: resolve(__dirname, 'ts/main.ts'),
-        fileName: 'index',
+        fileName: 'layout',
         formats: ['es']
       },
-      outDir: './layout.ts/public/lib/layout'
+      outDir: '../dist'
     }
   })
 );
