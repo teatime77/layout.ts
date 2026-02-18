@@ -13,7 +13,7 @@ export default defineConfig(
         fileName: 'layout',
         formats: ['es']
       },
-      outDir: '../dist'
+      outDir: '../dist/layout/assets'
     }
   })
 );
